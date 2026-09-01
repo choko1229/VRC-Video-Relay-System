@@ -1,14 +1,14 @@
+{% import "icons.html" as icons %}
 <div class="card">
     <div class="relay-toggle">
-        <div>
-            <div class="muted">中継サーバー</div>
-            <div style="font-size:1.1rem;font-weight:700">
-                {% if relay.state == "relaying" %}<span class="badge badge-on">中継中</span>
-                {% elif relay.state == "connecting" %}<span class="badge badge-warn">接続中</span>
-                {% elif relay.state == "reconnecting" %}<span class="badge badge-warn">再接続中(試行{{ relay.reconnect_attempts }}回目)</span>
-                {% elif relay.state == "error" %}<span class="badge badge-error">エラー</span>
-                {% else %}<span class="badge badge-off">停止中</span>{% endif %}
-            </div>
+        <div class="status-block">
+            <div class="card-header" style="margin-bottom:6px">{{ icons.relay() }}<span>中継サーバー</span></div>
+            {% if relay.state == "relaying" %}<span class="badge badge-on badge-live">中継中</span>
+            {% elif relay.state == "connecting" %}<span class="badge badge-warn badge-live">接続中</span>
+            {% elif relay.state == "reconnecting" %}<span class="badge badge-warn badge-live">再接続中(試行{{ relay.reconnect_attempts }}回目)</span>
+            {% elif relay.state == "error" %}<span class="badge badge-error">エラー</span>
+            {% elif mediamtx_running %}<span class="badge badge-on badge-live">OBS受信のみ稼働中</span>
+            {% else %}<span class="badge badge-off">停止中</span>{% endif %}
         </div>
         <button
             class="{{ 'btn-danger' if mediamtx_running or relay.state != 'stopped' else 'btn-success' }}"
@@ -22,8 +22,8 @@
 </div>
 
 <div class="card">
-    <div class="muted">OBS接続状態</div>
-    {% if obs_connected %}<span class="badge badge-on">受信中</span>
+    <div class="card-header">{{ icons.obs() }}<span>OBS接続状態</span></div>
+    {% if obs_connected %}<span class="badge badge-on badge-live">受信中</span>
     {% else %}<span class="badge badge-off">未接続</span>{% endif %}
 
     <div class="stat-grid">
@@ -47,22 +47,25 @@
 </div>
 
 <div class="card">
-    <div class="muted">自分のVRC用配信URL</div>
-    <div class="copy-row" style="margin-top:8px">
-        <input type="text" id="playback-url" readonly value="{{ playback_url }}">
-        <button class="btn-secondary" type="button" onclick="copyToClipboard('playback-url')">コピー</button>
+    <div class="card-header">{{ icons.link() }}<span>自分のVRC用配信URL</span></div>
+    <div class="copy-row">
+        <input type="text" id="playback-url" readonly value="{{ playback_url }}" placeholder="中継開始後にここへ表示されます">
+        <button class="btn-secondary" type="button" onclick="copyToClipboard('playback-url')">{{ icons.copy() }}<span>コピー</span></button>
     </div>
     <button class="btn-secondary" style="margin-top:12px" hx-post="/dashboard/stream-key/rotate" hx-target="#dashboard-root" hx-swap="innerHTML" hx-confirm="ストリームキーを再発行しますか?中継中の場合は再起動が必要です。">
-        ストリームキーを再発行
+        {{ icons.rotatekey() }}<span>ストリームキーを再発行</span>
     </button>
 </div>
 
 <div class="card">
-    <h3 style="margin-top:0">中継の詳細設定</h3>
+    <div class="card-header" style="margin-bottom:2px"><span style="font-size:0.95rem;color:var(--color-text);font-weight:700">中継の詳細設定</span></div>
     <div class="toggle-row">
-        <div>
-            <div>動的ビットレート調整</div>
-            <div class="muted">帯域悪化時にエンコード設定を自動で切り替える</div>
+        <div class="toggle-label">
+            {{ icons.bolt() }}
+            <div>
+                <div>動的ビットレート調整</div>
+                <div class="muted">帯域悪化時にエンコード設定を自動で切り替える</div>
+            </div>
         </div>
         <label class="switch">
             <input type="checkbox" {{ "checked" if dynamic_bitrate_enabled else "" }}
@@ -71,9 +74,12 @@
         </label>
     </div>
     <div class="toggle-row">
-        <div>
-            <div>自動再接続</div>
-            <div class="muted">接続が切れた際に自動で再接続する</div>
+        <div class="toggle-label">
+            {{ icons.reconnect() }}
+            <div>
+                <div>自動再接続</div>
+                <div class="muted">接続が切れた際に自動で再接続する</div>
+            </div>
         </div>
         <label class="switch">
             <input type="checkbox" {{ "checked" if auto_reconnect_enabled else "" }}

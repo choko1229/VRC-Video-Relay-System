@@ -1,4 +1,6 @@
+{% import "icons.html" as icons %}
 <div class="card">
+    <div class="card-header">{{ icons.logs() }}<span>直近{{ logs|length }}件</span></div>
     <table>
         <thead><tr><th>日時</th><th>レベル</th><th>内容</th></tr></thead>
         <tbody>

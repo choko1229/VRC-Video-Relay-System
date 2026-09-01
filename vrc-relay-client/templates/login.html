@@ -1,5 +1,6 @@
+{% import "icons.html" as icons %}
 <!doctype html>
-<html lang="ja">
+<html lang="ja"{% if current_theme() != "system" %} data-theme="{{ current_theme() }}"{% endif %}>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,8 +8,12 @@
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-    <div class="container" style="max-width:360px;margin-top:60px">
-        <div class="card">
+    <div class="container" style="max-width:360px;margin-top:72px">
+        <div class="login-brand">
+            {{ icons.relay("login-brand-mark") }}
+            <span>VRC配信中継</span>
+        </div>
+        <div class="card fade-in-up">
             <h1>ログイン</h1>
 
             {% if error %}
@@ -25,7 +30,7 @@
                 <label for="password">パスワード</label>
                 <input type="password" id="password" name="password" required>
 
-                <button type="submit">ログイン</button>
+                <button type="submit" class="btn-block">ログイン</button>
             </form>
         </div>
     </div>

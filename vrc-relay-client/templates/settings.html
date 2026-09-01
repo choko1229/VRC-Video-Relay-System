@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "icons.html" as icons %}
 {% block title %}設定 - VRC配信中継クライアント{% endblock %}
 {% block content %}
 <h1>設定</h1>
@@ -9,11 +10,11 @@
 
 <div class="card">
     <form method="post" action="/settings">
-        <h3 style="margin-top:0">公開サーバー接続情報</h3>
+        <div class="card-header">{{ icons.link() }}<span>公開サーバー接続情報</span></div>
         <label for="server_url">公開サーバーURL</label>
         <input type="text" id="server_url" name="server_url" required value="{{ server_url }}">
 
-        <h3>Tier2詳細設定</h3>
+        <div class="card-header" style="margin-top:8px">{{ icons.bolt() }}<span>Tier2詳細設定</span></div>
         <label for="degrade_streak_threshold">帯域悪化と判定するまでの連続検知回数</label>
         <input type="number" id="degrade_streak_threshold" name="degrade_streak_threshold" min="1" max="100" value="{{ degrade_streak_threshold }}">
 

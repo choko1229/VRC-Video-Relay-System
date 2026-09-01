@@ -1,5 +1,6 @@
+{% import "icons.html" as icons %}
 <!doctype html>
-<html lang="ja">
+<html lang="ja"{% if current_theme() != "system" %} data-theme="{{ current_theme() }}"{% endif %}>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,12 +11,19 @@
 <body>
     {% block nav %}
     <div class="nav">
-        <strong>VRC配信中継</strong>
-        <a href="/">ダッシュボード</a>
-        <a href="/settings">設定</a>
-        <a href="/logs">ログ</a>
+        <div class="brand">
+            {{ icons.relay("brand-mark") }}
+            <span>VRC配信中継</span>
+        </div>
+        <a href="/" class="nav-link">{{ icons.dashboard() }}<span>ダッシュボード</span></a>
+        <a href="/settings" class="nav-link">{{ icons.settings() }}<span>設定</span></a>
+        <a href="/logs" class="nav-link">{{ icons.logs() }}<span>ログ</span></a>
         <span style="flex:1"></span>
-        <a href="/logout">ログアウト</a>
+        <button type="button" id="theme-toggle" class="icon-btn" title="配色モード切替" onclick="cycleTheme()"></button>
+        <span id="icon-theme-system" hidden>{{ icons.monitor() }}</span>
+        <span id="icon-theme-light" hidden>{{ icons.sun() }}</span>
+        <span id="icon-theme-dark" hidden>{{ icons.moon() }}</span>
+        <a href="/logout" class="nav-link">{{ icons.logout() }}<span>ログアウト</span></a>
     </div>
     {% endblock %}
 
@@ -29,6 +37,40 @@
             el.select();
             navigator.clipboard.writeText(el.value);
         }
+
+        const THEME_ORDER = ["system", "light", "dark"];
+
+        function applyThemeIcon(theme) {
+            document.getElementById("theme-toggle").innerHTML =
+                document.getElementById("icon-theme-" + theme).innerHTML;
+        }
+
+        function cycleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute("data-theme") || "system";
+            const next = THEME_ORDER[(THEME_ORDER.indexOf(current) + 1) % THEME_ORDER.length];
+
+            if (next === "system") {
+                html.removeAttribute("data-theme");
+            } else {
+                html.setAttribute("data-theme", next);
+            }
+            applyThemeIcon(next);
+
+            fetch("/theme/set", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: "value=" + next,
+            });
+        }
+
+        applyThemeIcon(document.documentElement.getAttribute("data-theme") || "system");
+
+        document.querySelectorAll(".nav-link").forEach((el) => {
+            if (el.getAttribute("href") === window.location.pathname) {
+                el.classList.add("active");
+            }
+        });
     </script>
 </body>
 </html>

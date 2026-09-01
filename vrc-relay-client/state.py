@@ -14,6 +14,7 @@ relay_client = RelayClient(network_monitor)
 CONFIG_KEY_PUBLIC_SERVER_URL = "public_server_url"
 CONFIG_KEY_PUSH_URL = "cached_push_url"
 CONFIG_KEY_PLAYBACK_URL = "cached_playback_url"
+CONFIG_KEY_THEME = "theme_preference"
 
 RELAY_SETTING_DYNAMIC_BITRATE = "dynamic_bitrate_enabled"
 RELAY_SETTING_AUTO_RECONNECT = "auto_reconnect_enabled"

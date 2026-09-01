@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Form, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 
 from db.models import get_config, get_relay_setting, set_config, set_relay_setting
 from state import (
     CONFIG_KEY_PUBLIC_SERVER_URL,
+    CONFIG_KEY_THEME,
     RELAY_SETTING_DEGRADE_THRESHOLD,
     RELAY_SETTING_RECOVER_THRESHOLD,
     relay_client,
@@ -11,6 +12,15 @@ from state import (
 from templating import templates
 
 router = APIRouter()
+
+_VALID_THEMES = {"system", "light", "dark"}
+
+
+@router.post("/theme/set")
+async def set_theme(value: str = Form(...)) -> Response:
+    if value in _VALID_THEMES:
+        set_config(CONFIG_KEY_THEME, value)
+    return Response(status_code=204)
 
 
 @router.get("/settings", response_class=HTMLResponse)
