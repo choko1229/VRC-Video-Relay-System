@@ -187,3 +187,5 @@ vrc-relay-server/certs/
 vrc-relay-client/mediamtx/mediamtx.exe
 poc/*.crt
 poc/*.key
+# ビルド設定として手を加えたものなので*.specの除外対象から明示的に復元する
+!vrc-relay-client/vrc-relay-client.spec

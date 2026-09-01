@@ -36,5 +36,12 @@ uv run python main.py
 
 ## 配布(PyInstaller)
 
-v1では未整備。将来的に`main.py`をエントリポイントとしてexe化し、`mediamtx/mediamtx.exe`・
-`templates/`・`static/`を同梱物として配布する想定。
+```bash
+uv sync
+uv run pyinstaller --noconfirm vrc-relay-client.spec
+```
+
+`dist/vrc-relay-client/`に実行ファイル一式が生成される(`vrc-relay-client.exe`起動で
+ローカルFastAPI+pywebviewウィンドウが立ち上がることを確認済み)。配布前に
+`dist/vrc-relay-client/_internal/mediamtx/`へ`mediamtx.exe`を配置すること
+(ライセンスの都合上ビルド成果物には含めていない)。
