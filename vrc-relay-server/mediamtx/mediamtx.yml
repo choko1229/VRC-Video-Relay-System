@@ -5,26 +5,37 @@
 logLevel: info
 
 # --- 外部HTTP認証 ---
+# authHTTPAddressを設定するだけでは有効にならず、authMethodをhttpに切り替える必要がある
+# (デフォルトはinternalで、authHTTPAddressの設定自体は無視される)
+authMethod: http
 authHTTPAddress: http://app:8000/internal/mediamtx/auth
 authHTTPExclude:
   # MVP方針: 視聴(read)側は認証なし。RTSPSのTLS暗号化とパス名の非公開性で担保する。
   # (仕様書8章の未決事項として、コミュニティ規模拡大時は要再検討)
   - action: read
+    path:
 
 # --- RTMP(配信主PC側 relay_client.py からのpush受信) ---
+rtmp: yes
 rtmpAddress: :1935
 
 # --- RTSP/RTSPS(VRChat ProTV等からの再生用) ---
+# rtspsAddressを設定するだけではRTSPSリスナーは起動せず、rtspEncryptionを
+# strict/optionalにする必要がある(デフォルトはno=RTSPSリスナー無効)。
+rtsp: yes
+rtspEncryption: optional
 rtspAddress: :8554
 rtspsAddress: :8322
 # TLS証明書はnginxでの終端ではなくMediaMTX自身で保持する(RTSPSはHTTPではないためnginx越しにできない)
-serverCert: /certs/server.crt
-serverKey: /certs/server.key
+rtspServerCert: /certs/server.crt
+rtspServerKey: /certs/server.key
 
-# 未使用プロトコルは無効化
-hlsAddress: ""
-webrtcAddress: ""
-srtAddress: ""
+# 未使用プロトコルは無効化(アドレスを空にするだけでは
+# 「有効なのにアドレス未設定」エラーになるため、対応する真偽値も明示的にnoにする)
+hls: no
+webrtc: no
+srt: no
+moq: no
 
 # --- HTTP API(管理パネルからのpaths一覧・kick等に使用) ---
 api: yes

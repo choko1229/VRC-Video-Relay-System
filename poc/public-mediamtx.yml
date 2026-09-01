@@ -12,17 +12,25 @@ logLevel: info
 
 # RTMP受信(ローカルのrelay_client.py役 = ffmpeg -c copyのpush先)
 # PoCでは検証用に全アドレスでリッスン。本番は要認証・要制限。
+rtmp: yes
 rtmpAddress: :1935
 
 # VRChat(ProTV等)からのRTSPS再生用。TLS必須。
+# rtspsAddressを設定するだけではRTSPSリスナーは起動せず、rtspEncryptionを
+# strict/optionalにする必要がある(デフォルトはno=RTSPSリスナー無効)。
+rtsp: yes
+rtspEncryption: optional
 rtspAddress: :8554
 rtspsAddress: :8322
-serverCert: server.crt
-serverKey: server.key
+rtspServerCert: server.crt
+rtspServerKey: server.key
 
-hlsAddress: ""
-webrtcAddress: ""
-srtAddress: ""
+# アドレスを空にするだけでは「有効なのにアドレス未設定」エラーになるため、
+# 対応する真偽値も明示的にnoにする必要がある
+hls: no
+webrtc: no
+srt: no
+moq: no
 
 paths:
   live_poc:

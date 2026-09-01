@@ -1,4 +1,5 @@
 import logging
+import re
 import subprocess
 import threading
 from pathlib import Path
@@ -6,6 +7,13 @@ from pathlib import Path
 from db.models import add_log
 
 logger = logging.getLogger(__name__)
+
+# MediaMTXの実ログ行例(v1.20.1, RTMP):
+#   [RTMP] [conn 127.0.0.1:50609] is publishing to path 'obs_local'
+#   [RTMP] [conn 127.0.0.1:50609] closed: EOF
+# 切断ログにはパス名が含まれないため、コネクションIDで紐付けて判定する。
+_CONN_ID_RE = re.compile(r"\[conn ([^\]]+)\]")
+_PUBLISHING_SUFFIX = "is publishing to path 'obs_local'"
 
 MEDIAMTX_DIR = Path(__file__).resolve().parent.parent / "mediamtx"
 MEDIAMTX_EXE = MEDIAMTX_DIR / "mediamtx.exe"
@@ -22,6 +30,7 @@ class MediaMTXManager:
         self._process: subprocess.Popen | None = None
         self._log_thread: threading.Thread | None = None
         self._obs_connected = False
+        self._publisher_conn_id: str | None = None
 
     def is_running(self) -> bool:
         return self._process is not None and self._process.poll() is None
@@ -48,6 +57,7 @@ class MediaMTXManager:
             bufsize=1,
         )
         self._obs_connected = False
+        self._publisher_conn_id = None
         self._log_thread = threading.Thread(target=self._pump_logs, daemon=True)
         self._log_thread.start()
         add_log("info", "ローカルMediaMTXを起動しました")
@@ -63,6 +73,7 @@ class MediaMTXManager:
             self._process.kill()
         self._process = None
         self._obs_connected = False
+        self._publisher_conn_id = None
         add_log("info", "ローカルMediaMTXを停止しました")
 
     def _pump_logs(self) -> None:
@@ -71,11 +82,20 @@ class MediaMTXManager:
             line = line.strip()
             if not line:
                 continue
-            # OBS(publisher)がobs_localパスに接続/切断したかをログから検出する
-            if "obs_local" in line and "is publishing" in line:
+
+            conn_match = _CONN_ID_RE.search(line)
+            if conn_match and line.endswith(_PUBLISHING_SUFFIX):
+                self._publisher_conn_id = conn_match.group(1)
                 self._obs_connected = True
                 add_log("info", "OBSからの映像受信を開始しました")
-            elif "obs_local" in line and ("destroyed" in line or "closed" in line):
+            elif (
+                conn_match
+                and self._publisher_conn_id is not None
+                and conn_match.group(1) == self._publisher_conn_id
+                and "closed" in line
+            ):
+                self._publisher_conn_id = None
                 self._obs_connected = False
                 add_log("info", "OBSからの映像受信が終了しました")
+
             logger.debug("[mediamtx] %s", line)

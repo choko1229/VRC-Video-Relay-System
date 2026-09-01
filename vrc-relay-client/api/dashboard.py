@@ -106,10 +106,17 @@ async def relay_toggle(request: Request) -> HTMLResponse:
             except Exception:
                 logger.warning("最新の配信URL取得に失敗したため、キャッシュされたURLを使用します")
 
+        # ローカルMediaMTX(OBS受信)は配信URLの有無にかかわらず必ず起動する。
+        # 公開サーバーへのpushだけが配信URL依存であり、それが取得できない場合でも
+        # OBSの受信確認やローカル動作確認自体はできるようにする。
+        mediamtx_manager.start()
+
         if not push_url:
-            add_log("error", "配信URLが取得できないため中継を開始できません。再ログインしてください。")
+            add_log(
+                "warning",
+                "配信URLが取得できないため公開サーバーへの中継は開始しません(OBS受信のみ有効です)。再ログインするか設定を確認してください。",
+            )
         else:
-            mediamtx_manager.start()
             relay_client.start(
                 RelayConfig(
                     push_url=push_url,

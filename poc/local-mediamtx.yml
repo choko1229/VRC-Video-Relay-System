@@ -6,14 +6,17 @@
 logLevel: info
 
 # 127.0.0.1限定でリッスン(外部からのアクセス不可)
+rtmp: yes
 rtmpAddress: 127.0.0.1:1935
 
 # 他プロトコルはPoCでは不要なので無効化
-rtspAddress: ""
-rtspsAddress: ""
-hlsAddress: ""
-webrtcAddress: ""
-srtAddress: ""
+# (アドレスを空にするだけでは「有効なのにアドレス未設定」エラーになるため、
+#  対応する真偽値も明示的にnoにする必要がある)
+rtsp: no
+hls: no
+webrtc: no
+srt: no
+moq: no
 
 paths:
   obs_local:
