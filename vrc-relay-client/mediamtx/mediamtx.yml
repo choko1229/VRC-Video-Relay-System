@@ -1,0 +1,17 @@
+# ローカルMediaMTX設定(配信主PC上)。OBSからのRTMP受信専用。
+# 127.0.0.1限定で外部公開しない。実際の公開サーバーへの中継はcore/relay_client.pyが
+# ffmpegを制御して別途行う(このMediaMTXは中継を行わず、OBSの受け口としてのみ動作する)。
+
+logLevel: info
+
+rtmpAddress: 127.0.0.1:1935
+
+rtspAddress: ""
+rtspsAddress: ""
+hlsAddress: ""
+webrtcAddress: ""
+srtAddress: ""
+
+paths:
+  obs_local:
+    source: publisher

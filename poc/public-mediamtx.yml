@@ -1,0 +1,29 @@
+# PoC用: 公開サーバー側MediaMTX設定
+#
+# 注意: これはPoC(疎通確認)専用の設定です。外部HTTP認証は組み込んでいません。
+#       本番相当の設定は vrc-relay-server/mediamtx/mediamtx.yml を参照してください。
+#       PoCでは「二段中継(OBS→ローカル→公開→VRC)が実機で動くか」の検証のみを目的とします。
+#
+# 実行: mediamtx.exe public-mediamtx.yml
+# 事前準備: 同じディレクトリに server.crt / server.key (自己署名証明書) を用意すること。
+#           poc/README.md の手順1を参照。
+
+logLevel: info
+
+# RTMP受信(ローカルのrelay_client.py役 = ffmpeg -c copyのpush先)
+# PoCでは検証用に全アドレスでリッスン。本番は要認証・要制限。
+rtmpAddress: :1935
+
+# VRChat(ProTV等)からのRTSPS再生用。TLS必須。
+rtspAddress: :8554
+rtspsAddress: :8322
+serverCert: server.crt
+serverKey: server.key
+
+hlsAddress: ""
+webrtcAddress: ""
+srtAddress: ""
+
+paths:
+  live_poc:
+    source: publisher

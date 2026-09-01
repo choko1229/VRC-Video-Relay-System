@@ -1,0 +1,24 @@
+<div class="card" id="pending-list">
+    {% if users %}
+    <table>
+        <thead>
+            <tr><th>ユーザー名</th><th>Discord ID</th><th>申請日時</th><th></th></tr>
+        </thead>
+        <tbody>
+        {% for u in users %}
+            <tr>
+                <td>{{ u.username }}</td>
+                <td>{{ u.discord_id or "-" }}</td>
+                <td>{{ u.applied_at.strftime("%Y-%m-%d %H:%M") }}</td>
+                <td style="display:flex;gap:8px">
+                    <button class="btn-success" hx-post="/admin/users/{{ u.id }}/approve" hx-target="#pending-list" hx-swap="outerHTML">承認</button>
+                    <button class="btn-danger" hx-post="/admin/users/{{ u.id }}/reject" hx-target="#pending-list" hx-swap="outerHTML" hx-confirm="{{ u.username }} を却下しますか?">却下</button>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="muted">承認待ちのユーザーはいません。</p>
+    {% endif %}
+</div>

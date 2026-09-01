@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}利用申請 - VRC配信中継システム{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>利用申請</h1>
+    <p class="muted">申請後、管理者の承認をお待ちください。承認されるとDiscordにパスワード設定用のリンクが届きます。</p>
+
+    {% if error %}
+    <div class="flash flash-error">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="/apply">
+        <label for="username">ユーザー名(半角英数字・アンダースコア・ハイフン)</label>
+        <input type="text" id="username" name="username" required pattern="[a-zA-Z0-9_\-]+" minlength="3" maxlength="64" value="{{ username or '' }}">
+
+        <label for="discord_id">Discordユーザー ID(承認通知に使用・任意)</label>
+        <input type="text" id="discord_id" name="discord_id" maxlength="32" value="{{ discord_id or '' }}">
+
+        <button type="submit">申請する</button>
+    </form>
+</div>
+{% endblock %}

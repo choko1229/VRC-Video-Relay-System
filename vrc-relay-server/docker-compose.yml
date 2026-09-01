@@ -1,0 +1,55 @@
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: vrc_relay
+      MYSQL_USER: vrc_relay
+      MYSQL_PASSWORD: change_me
+      MYSQL_ROOT_PASSWORD: change_me_root
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+    expose:
+      - "8000"
+
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    restart: unless-stopped
+    depends_on:
+      - app
+    volumes:
+      - ./mediamtx/mediamtx.yml:/mediamtx.yml:ro
+      - ./certs:/certs:ro
+    ports:
+      - "1935:1935"   # RTMP(配信主PC relay_clientからのpush)
+      - "8554:8554"   # RTSP
+      - "8322:8322"   # RTSPS(VRChat再生用)
+      - "9997:9997"   # HTTP API(管理パネルから利用。外部公開不要なら本番はexposeのみに変更する)
+
+  nginx:
+    image: nginx:1.27
+    restart: unless-stopped
+    depends_on:
+      - app
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/certs:ro
+    ports:
+      - "80:80"
+      - "443:443"
+
+volumes:
+  mysql_data:

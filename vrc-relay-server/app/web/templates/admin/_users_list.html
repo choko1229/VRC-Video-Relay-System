@@ -1,0 +1,26 @@
+<div class="card" id="users-list">
+    <table>
+        <thead>
+            <tr><th>ユーザー名</th><th>role</th><th>状態</th><th>承認日時</th><th></th></tr>
+        </thead>
+        <tbody>
+        {% for u in users %}
+            <tr>
+                <td>{{ u.username }}</td>
+                <td>{{ u.role.value }}</td>
+                <td>
+                    {% if u.status.value == "approved" %}<span class="badge badge-approved">承認済み</span>
+                    {% elif u.status.value == "pending" %}<span class="badge badge-pending">承認待ち</span>
+                    {% else %}<span class="badge badge-banned">BAN</span>{% endif %}
+                </td>
+                <td>{{ u.approved_at.strftime("%Y-%m-%d %H:%M") if u.approved_at else "-" }}</td>
+                <td>
+                    {% if u.role.value != "admin" and u.status.value != "banned" %}
+                    <button class="btn-danger" hx-post="/admin/users/{{ u.id }}/ban" hx-target="#users-list" hx-swap="outerHTML" hx-confirm="{{ u.username }} をBANしますか?">BAN</button>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>

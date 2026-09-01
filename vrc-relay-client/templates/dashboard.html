@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}ダッシュボード - VRC配信中継クライアント{% endblock %}
+{% block content %}
+<h1>ダッシュボード</h1>
+<div id="dashboard-root" hx-get="/dashboard/status" hx-trigger="every 2s" hx-swap="innerHTML">
+{% include "_dashboard_status.html" %}
+</div>
+{% endblock %}

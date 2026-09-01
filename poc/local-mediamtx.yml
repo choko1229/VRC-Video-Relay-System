@@ -1,0 +1,20 @@
+# PoC用: 配信主PC側(ローカル)MediaMTX設定
+# OBSからのRTMP受信専用。127.0.0.1限定で外部公開しない。
+#
+# 実行: mediamtx.exe local-mediamtx.yml
+
+logLevel: info
+
+# 127.0.0.1限定でリッスン(外部からのアクセス不可)
+rtmpAddress: 127.0.0.1:1935
+
+# 他プロトコルはPoCでは不要なので無効化
+rtspAddress: ""
+rtspsAddress: ""
+hlsAddress: ""
+webrtcAddress: ""
+srtAddress: ""
+
+paths:
+  obs_local:
+    source: publisher

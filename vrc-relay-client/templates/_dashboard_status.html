@@ -1,0 +1,84 @@
+<div class="card">
+    <div class="relay-toggle">
+        <div>
+            <div class="muted">中継サーバー</div>
+            <div style="font-size:1.1rem;font-weight:700">
+                {% if relay.state == "relaying" %}<span class="badge badge-on">中継中</span>
+                {% elif relay.state == "connecting" %}<span class="badge badge-warn">接続中</span>
+                {% elif relay.state == "reconnecting" %}<span class="badge badge-warn">再接続中(試行{{ relay.reconnect_attempts }}回目)</span>
+                {% elif relay.state == "error" %}<span class="badge badge-error">エラー</span>
+                {% else %}<span class="badge badge-off">停止中</span>{% endif %}
+            </div>
+        </div>
+        <button
+            class="{{ 'btn-danger' if mediamtx_running or relay.state != 'stopped' else 'btn-success' }}"
+            hx-post="/dashboard/relay/toggle" hx-target="#dashboard-root" hx-swap="innerHTML">
+            {% if mediamtx_running or relay.state != "stopped" %}停止{% else %}開始{% endif %}
+        </button>
+    </div>
+    {% if relay.last_error %}
+    <div class="flash flash-error" style="margin-top:12px">{{ relay.last_error }}</div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="muted">OBS接続状態</div>
+    {% if obs_connected %}<span class="badge badge-on">受信中</span>
+    {% else %}<span class="badge badge-off">未接続</span>{% endif %}
+
+    <div class="stat-grid">
+        <div class="stat-tile">
+            <div class="value">{{ "%.0f"|format(network.bitrate_kbps) }} kbps</div>
+            <div class="label">ビットレート</div>
+        </div>
+        <div class="stat-tile">
+            <div class="value">{{ "%.1f"|format(network.fps) }}</div>
+            <div class="label">FPS</div>
+        </div>
+        <div class="stat-tile">
+            <div class="value">{{ "%.2f"|format(network.speed) }}x</div>
+            <div class="label">実時間比</div>
+        </div>
+        <div class="stat-tile">
+            <div class="value">{{ network.dropped_frames }}</div>
+            <div class="label">ドロップフレーム</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="muted">自分のVRC用配信URL</div>
+    <div class="copy-row" style="margin-top:8px">
+        <input type="text" id="playback-url" readonly value="{{ playback_url }}">
+        <button class="btn-secondary" type="button" onclick="copyToClipboard('playback-url')">コピー</button>
+    </div>
+    <button class="btn-secondary" style="margin-top:12px" hx-post="/dashboard/stream-key/rotate" hx-target="#dashboard-root" hx-swap="innerHTML" hx-confirm="ストリームキーを再発行しますか?中継中の場合は再起動が必要です。">
+        ストリームキーを再発行
+    </button>
+</div>
+
+<div class="card">
+    <h3 style="margin-top:0">中継の詳細設定</h3>
+    <div class="toggle-row">
+        <div>
+            <div>動的ビットレート調整</div>
+            <div class="muted">帯域悪化時にエンコード設定を自動で切り替える</div>
+        </div>
+        <label class="switch">
+            <input type="checkbox" {{ "checked" if dynamic_bitrate_enabled else "" }}
+                hx-post="/dashboard/tier2/dynamic_bitrate_enabled/toggle" hx-target="#dashboard-root" hx-swap="innerHTML">
+            <span class="slider"></span>
+        </label>
+    </div>
+    <div class="toggle-row">
+        <div>
+            <div>自動再接続</div>
+            <div class="muted">接続が切れた際に自動で再接続する</div>
+        </div>
+        <label class="switch">
+            <input type="checkbox" {{ "checked" if auto_reconnect_enabled else "" }}
+                hx-post="/dashboard/tier2/auto_reconnect_enabled/toggle" hx-target="#dashboard-root" hx-swap="innerHTML">
+            <span class="slider"></span>
+        </label>
+    </div>
+</div>

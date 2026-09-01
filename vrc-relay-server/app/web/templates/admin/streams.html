@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}配信状況モニタリング - 管理パネル{% endblock %}
+{% block content %}
+<h1>配信状況モニタリング</h1>
+<div hx-get="/admin/streams" hx-trigger="every 5s" hx-swap="innerHTML">
+{% include "admin/_streams_table.html" %}
+</div>
+{% endblock %}

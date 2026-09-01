@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}申請状況確認 - VRC配信中継システム{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>申請状況確認</h1>
+    <form method="post" action="/status">
+        <label for="username">ユーザー名</label>
+        <input type="text" id="username" name="username" required value="{{ username or '' }}">
+        <button type="submit">確認する</button>
+    </form>
+
+    {% if result %}
+    <hr style="border:none;border-top:1px solid var(--color-border);margin:20px 0">
+        {% if result.status == "pending" %}
+            <div class="flash">承認待ちです。しばらくお待ちください。</div>
+        {% elif result.status == "banned" %}
+            <div class="flash flash-error">このアカウントは利用できません。</div>
+        {% elif result.status == "approved" and result.has_password %}
+            <div class="flash flash-success">承認済みです。Windowsアプリからログインしてください。</div>
+        {% elif result.status == "approved" %}
+            <div class="flash flash-success">
+                承認済みです。パスワードが未設定のため、以下のリンクから設定してください。
+            </div>
+            <a class="btn" href="{{ result.setup_url }}">パスワードを設定する</a>
+        {% endif %}
+    {% elif searched %}
+        <hr style="border:none;border-top:1px solid var(--color-border);margin:20px 0">
+        <div class="flash flash-error">該当するユーザーが見つかりませんでした。</div>
+    {% endif %}
+</div>
+{% endblock %}

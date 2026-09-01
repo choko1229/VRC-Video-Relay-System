@@ -1,0 +1,23 @@
+<div class="card">
+    <table>
+        <thead>
+            <tr><th>ユーザー名</th><th>パス</th><th>状態</th><th>受信バイト数</th></tr>
+        </thead>
+        <tbody>
+        {% for s in streams %}
+            <tr>
+                <td>{{ s.username }}</td>
+                <td>{{ s.path_name }}</td>
+                <td>
+                    {% if s.is_publishing %}<span class="badge badge-live">配信中</span>
+                    {% else %}<span class="badge badge-offline">オフライン</span>{% endif %}
+                </td>
+                <td>{{ s.bytes_received if s.bytes_received is not none else "-" }}</td>
+            </tr>
+        {% else %}
+            <tr><td colspan="4" class="muted">承認済みユーザーがいません。</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <p class="muted">5秒ごとに自動更新されます。</p>
+</div>

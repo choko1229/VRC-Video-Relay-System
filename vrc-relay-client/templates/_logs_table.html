@@ -1,0 +1,20 @@
+<div class="card">
+    <table>
+        <thead><tr><th>日時</th><th>レベル</th><th>内容</th></tr></thead>
+        <tbody>
+        {% for log in logs %}
+            <tr>
+                <td class="muted">{{ log.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+                <td>
+                    {% if log.level == "error" %}<span class="badge badge-error">ERROR</span>
+                    {% elif log.level == "warning" %}<span class="badge badge-warn">WARN</span>
+                    {% else %}<span class="badge badge-off">INFO</span>{% endif %}
+                </td>
+                <td>{{ log.message }}</td>
+            </tr>
+        {% else %}
+            <tr><td colspan="3" class="muted">ログはありません。</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
