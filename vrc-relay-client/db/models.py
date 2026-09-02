@@ -1,3 +1,4 @@
+import sys
 from collections.abc import Generator
 from datetime import UTC, datetime
 from pathlib import Path
@@ -5,7 +6,15 @@ from pathlib import Path
 from sqlalchemy import DateTime, LargeBinary, String, Text, create_engine, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
-DB_PATH = Path(__file__).resolve().parent.parent / "vrc_relay_client.db"
+if getattr(sys, "frozen", False):
+    # PyInstaller(onedir)ではPythonモジュール自体は_internal/配下に置かれるため、
+    # __file__基準だとDBが内部実装フォルダに埋もれてしまう。認証トークン等の
+    # ユーザーデータはexe本体と同じディレクトリに保存する。
+    _APP_DIR = Path(sys.executable).resolve().parent
+else:
+    _APP_DIR = Path(__file__).resolve().parent.parent
+
+DB_PATH = _APP_DIR / "vrc_relay_client.db"
 engine = create_engine(f"sqlite:///{DB_PATH}", connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 
