@@ -1,0 +1,3 @@
+# リポジトリ直下用の橋渡し。実体はvrc-relay-server/requirements.txt
+# (Pterodactylの{{REQUIREMENTS_FILE}}をデフォルト値のままにしても動くようにするため)
+-r vrc-relay-server/requirements.txt
