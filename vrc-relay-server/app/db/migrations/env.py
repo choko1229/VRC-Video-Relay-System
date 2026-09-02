@@ -15,13 +15,14 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 settings = get_settings()
-config.set_main_option("sqlalchemy.url", settings.database_url)
+# alembic.iniのConfig(ConfigParser)経由でDATABASE_URLを保持すると、パスワードに
+# "%"が含まれる場合(URLエンコードされた記号等)にConfigParserの補間記法と衝突して
+# ValueErrorになる。settings.database_urlをそのまま使い、ConfigParserを経由させない。
 
 
 def run_migrations_offline() -> None:
-    url = config.get_main_option("sqlalchemy.url")
     context.configure(
-        url=url,
+        url=settings.database_url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -37,7 +38,7 @@ def do_run_migrations(connection) -> None:
 
 
 async def run_migrations_online() -> None:
-    connectable: AsyncEngine = create_async_engine(config.get_main_option("sqlalchemy.url"))
+    connectable: AsyncEngine = create_async_engine(settings.database_url)
 
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)
