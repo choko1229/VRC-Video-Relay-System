@@ -15,15 +15,20 @@ services:
       timeout: 5s
       retries: 10
 
+  # Web管理パネル/APIはポート開放せず、同梱したcloudflaredでCloudflare Tunnel経由で公開する
+  # (TLS終端・公開ホスト名の割り当てはCloudflare Zero Trustダッシュボード側で設定する。
+  #  トンネルのpublic hostnameのServiceは http://app:${APP_PORT} を指すよう設定すること)
   app:
     build: .
     restart: unless-stopped
     env_file: .env
+    environment:
+      APP_PORT: ${APP_PORT:-8000}
     depends_on:
       mysql:
         condition: service_healthy
     expose:
-      - "8000"
+      - "${APP_PORT:-8000}"
 
   mediamtx:
     image: bluenviron/mediamtx:latest
@@ -35,21 +40,10 @@ services:
       - ./certs:/certs:ro
     ports:
       - "1935:1935"   # RTMP(配信主PC relay_clientからのpush)
-      - "8554:8554"   # RTSP
       - "8322:8322"   # RTSPS(VRChat再生用)
-      - "9997:9997"   # HTTP API(管理パネルから利用。外部公開不要なら本番はexposeのみに変更する)
-
-  nginx:
-    image: nginx:1.27
-    restart: unless-stopped
-    depends_on:
-      - app
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./certs:/certs:ro
-    ports:
-      - "80:80"
-      - "443:443"
+    expose:
+      - "8554"  # RTSP(平文)。VRC側はRTSPSを使う想定なので外部公開しない
+      - "9997"  # HTTP API。管理パネル(app)からのみ利用するので外部公開しない
 
 volumes:
   mysql_data:

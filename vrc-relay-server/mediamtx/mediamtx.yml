@@ -8,6 +8,7 @@ logLevel: info
 # authHTTPAddressを設定するだけでは有効にならず、authMethodをhttpに切り替える必要がある
 # (デフォルトはinternalで、authHTTPAddressの設定自体は無視される)
 authMethod: http
+# ポート番号はapp側の.envのAPP_PORT(デフォルト8000)と一致させること
 authHTTPAddress: http://app:8000/internal/mediamtx/auth
 authHTTPExclude:
   # MVP方針: 視聴(read)側は認証なし。RTSPSのTLS暗号化とパス名の非公開性で担保する。
@@ -26,7 +27,7 @@ rtsp: yes
 rtspEncryption: optional
 rtspAddress: :8554
 rtspsAddress: :8322
-# TLS証明書はnginxでの終端ではなくMediaMTX自身で保持する(RTSPSはHTTPではないためnginx越しにできない)
+# TLS証明書はMediaMTX自身で保持する(RTSPSはHTTPではないためCloudflare Tunnel等を経由できず、直接ポート公開する)
 rtspServerCert: /certs/server.crt
 rtspServerKey: /certs/server.key
 
