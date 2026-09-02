@@ -61,11 +61,24 @@
         <input type="text" id="rtsps_port" name="rtsps_port" required value="{{ form.rtsps_port or '8322' }}">
 
         <h3>Web管理パネル公開URL</h3>
-        <label for="public_web_base_url">URL(パスワード設定リンクの組み立てに使用)</label>
-        <input type="text" id="public_web_base_url" name="public_web_base_url" required placeholder="https://vrc-lr.example.net" value="{{ form.public_web_base_url or '' }}">
+        <label for="public_web_base_url">URL(申請・ログインのDiscord OAuthコールバック組み立てにも使用)</label>
+        <input type="text" id="public_web_base_url" name="public_web_base_url" required placeholder="https://vrc-lr.example.net"
+               value="{{ form.public_web_base_url or '' }}" oninput="updateRedirectUri()">
+
+        <h3>Discord OAuth(一般ユーザーの申請・ログインに必須)</h3>
+        <p class="muted">
+            <a href="https://discord.com/developers/applications" target="_blank" rel="noopener">Discord Developer Portal</a>
+            でアプリケーションを作成し、OAuth2設定のRedirectsに次のURLを登録してください:<br>
+            <code id="redirect-uri-preview">(上のWeb公開URLを入力すると表示されます)</code>
+        </p>
+        <label for="discord_oauth_client_id">Client ID</label>
+        <input type="text" id="discord_oauth_client_id" name="discord_oauth_client_id" required value="{{ form.discord_oauth_client_id or '' }}">
+
+        <label for="discord_oauth_client_secret">Client Secret</label>
+        <input type="text" id="discord_oauth_client_secret" name="discord_oauth_client_secret" required value="{{ form.discord_oauth_client_secret or '' }}">
 
         <h3>任意設定</h3>
-        <label for="discord_bot_token">Discord Botトークン(承認通知DM用、未使用ならログに出力するだけになります)</label>
+        <label for="discord_bot_token">Discord Botトークン(承認通知DM用。同じDiscordアプリケーションのBotタブから取得できます)</label>
         <input type="text" id="discord_bot_token" name="discord_bot_token" value="{{ form.discord_bot_token or '' }}">
 
         <label for="cloudflare_tunnel_token">Cloudflare Tunnelトークン(Web管理パネルの公開用)</label>
@@ -75,4 +88,12 @@
         <button type="submit">DB接続を確認して保存</button>
     </form>
 </div>
+<script>
+    function updateRedirectUri() {
+        const base = document.getElementById("public_web_base_url").value.replace(/\/+$/, "");
+        const el = document.getElementById("redirect-uri-preview");
+        el.textContent = base ? base + "/oauth/discord/callback" : "(上のWeb公開URLを入力すると表示されます)";
+    }
+    updateRedirectUri();
+</script>
 {% endblock %}

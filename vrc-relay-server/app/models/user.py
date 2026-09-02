@@ -23,9 +23,11 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
-    # 申請直後はパスワード未設定(承認後に本人がWebで設定する)
+    # パスワードは初回セットアップで作成する管理者アカウントのみが使う(break-glass用)。
+    # 一般ユーザーはDiscord OAuthが必須のため常にNULL。
     password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    discord_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # 一般ユーザーは申請時のDiscord OAuthで必ず設定される(adminのみNULL許容)。
+    discord_id: Mapped[str | None] = mapped_column(String(32), unique=True, nullable=True)
     status: Mapped[UserStatus] = mapped_column(
         Enum(UserStatus), default=UserStatus.pending, nullable=False
     )

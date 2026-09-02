@@ -11,6 +11,7 @@ from app.db import session as db_session
 from app.logging_config import configure_logging
 from app.services import admin_bootstrap
 from app.services.discord_service import DiscordNotifier
+from app.web.oauth import router as oauth_router
 from app.web.routes import router as web_router
 from app.web.setup import router as setup_router
 
@@ -54,6 +55,7 @@ async def require_setup(request: Request, call_next):
 
 
 app.include_router(setup_router)
+app.include_router(oauth_router)
 app.include_router(auth.router)
 app.include_router(me.router)
 app.include_router(admin.router)

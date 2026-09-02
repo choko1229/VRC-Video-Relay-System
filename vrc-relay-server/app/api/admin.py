@@ -5,7 +5,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_discord_notifier, get_mediamtx_client, require_admin
-from app.config import Settings, get_settings
 from app.db.session import get_db
 from app.models.user import User, UserRole, UserStatus
 from app.schemas.stream import LiveStreamOut
@@ -33,14 +32,13 @@ async def list_users(
 async def approve_user(
     user_id: int,
     db: AsyncSession = Depends(get_db),
-    settings: Settings = Depends(get_settings),
     discord: DiscordNotifier = Depends(get_discord_notifier),
 ) -> UserOut:
     user = await _get_user_or_404(db, user_id)
     if user.status != UserStatus.pending:
         raise HTTPException(status.HTTP_409_CONFLICT, "承認待ちのユーザーではありません")
 
-    return await admin_actions.approve_user(db, user, settings, discord)
+    return await admin_actions.approve_user(db, user, discord)
 
 
 @router.post("/users/{user_id}/ban", response_model=UserOut)

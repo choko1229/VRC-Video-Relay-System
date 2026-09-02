@@ -45,39 +45,12 @@ def _require_admin_or_redirect(admin: User | None) -> RedirectResponse | None:
     return None
 
 
-# --- 利用申請 ---
+# --- 利用申請(Discord OAuthのstart/callback/confirmはapp/web/oauth.pyを参照) ---
 
 
 @router.get("/apply", response_class=HTMLResponse)
 async def apply_form(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(request, "apply.html", {})
-
-
-@router.post("/apply", response_class=HTMLResponse)
-async def apply_submit(
-    request: Request,
-    username: str = Form(...),
-    discord_id: str = Form(""),
-    db: AsyncSession = Depends(get_db),
-) -> HTMLResponse:
-    result = await db.execute(select(User).where(User.username == username))
-    if result.scalar_one_or_none() is not None:
-        return templates.TemplateResponse(
-            request,
-            "apply.html",
-            {"error": "このユーザー名は既に使用されています", "username": username, "discord_id": discord_id},
-        )
-
-    user = User(
-        username=username,
-        discord_id=discord_id or None,
-        status=UserStatus.pending,
-        applied_at=datetime.now(UTC),
-    )
-    db.add(user)
-    await db.commit()
-    logger.info("Web経由で新規申請を受け付けました: username=%s", username)
-    return templates.TemplateResponse(request, "applied.html", {})
 
 
 # --- 申請状況確認 ---
@@ -93,7 +66,6 @@ async def status_submit(
     request: Request,
     username: str = Form(...),
     db: AsyncSession = Depends(get_db),
-    settings: Settings = Depends(get_settings),
 ) -> HTMLResponse:
     result = await db.execute(select(User).where(User.username == username))
     user = result.scalar_one_or_none()
@@ -102,54 +74,11 @@ async def status_submit(
             request, "status.html", {"searched": True, "username": username}
         )
 
-    result_data = {"status": user.status.value, "has_password": user.password_hash is not None}
-    if user.status == UserStatus.approved and user.password_hash is None:
-        setup_token = auth_service.create_password_setup_token(user, settings)
-        result_data["setup_url"] = f"/set-password?token={setup_token}"
-
     return templates.TemplateResponse(
-        request, "status.html", {"username": username, "result": result_data, "searched": True}
+        request,
+        "status.html",
+        {"username": username, "result": {"status": user.status.value}, "searched": True},
     )
-
-
-# --- パスワード設定 ---
-
-
-@router.get("/set-password", response_class=HTMLResponse)
-async def set_password_form(request: Request, token: str) -> HTMLResponse:
-    return templates.TemplateResponse(request, "set_password.html", {"token": token})
-
-
-@router.post("/set-password", response_class=HTMLResponse)
-async def set_password_submit(
-    request: Request,
-    token: str = Form(...),
-    password: str = Form(...),
-    db: AsyncSession = Depends(get_db),
-    settings: Settings = Depends(get_settings),
-) -> HTMLResponse:
-    try:
-        user_id = auth_service.verify_password_setup_token(token, settings)
-    except auth_service.InvalidTokenError:
-        return templates.TemplateResponse(
-            request, "set_password.html", {"token": token, "error": "リンクが無効か有効期限切れです"}
-        )
-
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
-    if user is None or user.status != UserStatus.approved:
-        return templates.TemplateResponse(
-            request, "set_password.html", {"token": token, "error": "アカウントが見つからないか承認されていません"}
-        )
-
-    if len(password) < 8:
-        return templates.TemplateResponse(
-            request, "set_password.html", {"token": token, "error": "パスワードは8文字以上にしてください"}
-        )
-
-    user.password_hash = auth_service.hash_password(password)
-    await db.commit()
-    return templates.TemplateResponse(request, "set_password.html", {"token": token, "done": True})
 
 
 # --- 管理者ログイン ---
@@ -234,7 +163,7 @@ async def admin_approve(
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if user is not None and user.status == UserStatus.pending:
-        await admin_actions.approve_user(db, user, settings, discord)
+        await admin_actions.approve_user(db, user, discord)
 
     return await _render_pending_list(request, db, admin)
 

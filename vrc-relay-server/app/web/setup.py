@@ -36,6 +36,8 @@ async def setup_submit(
     rtsps_host: str = Form(...),
     rtsps_port: int = Form(...),
     public_web_base_url: str = Form(...),
+    discord_oauth_client_id: str = Form(...),
+    discord_oauth_client_secret: str = Form(...),
     discord_bot_token: str = Form(""),
     cloudflare_tunnel_token: str = Form(""),
 ) -> HTMLResponse:
@@ -54,6 +56,8 @@ async def setup_submit(
         "rtsps_host": rtsps_host,
         "rtsps_port": rtsps_port,
         "public_web_base_url": public_web_base_url,
+        "discord_oauth_client_id": discord_oauth_client_id,
+        "discord_oauth_client_secret": discord_oauth_client_secret,
         "discord_bot_token": discord_bot_token,
         "cloudflare_tunnel_token": cloudflare_tunnel_token,
     }
@@ -88,6 +92,8 @@ async def setup_submit(
             "PUBLIC_RTSPS_HOST": rtsps_host,
             "PUBLIC_RTSPS_PORT": str(rtsps_port),
             "PUBLIC_WEB_BASE_URL": public_web_base_url.rstrip("/"),
+            "DISCORD_OAUTH_CLIENT_ID": discord_oauth_client_id,
+            "DISCORD_OAUTH_CLIENT_SECRET": discord_oauth_client_secret,
             "DISCORD_BOT_TOKEN": discord_bot_token,
             "CLOUDFLARE_TUNNEL_TOKEN": cloudflare_tunnel_token,
         }

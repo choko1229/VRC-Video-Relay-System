@@ -6,13 +6,9 @@ import webview
 
 from app import app
 from db.models import init_db, purge_old_logs
-from state import mediamtx_manager, relay_client
+from state import LOCAL_HOST, LOCAL_PORT, mediamtx_manager, relay_client
 
 logger = logging.getLogger(__name__)
-
-# ローカルFastAPIは127.0.0.1限定でリッスンする(外部からのアクセス不可)
-LOCAL_HOST = "127.0.0.1"
-LOCAL_PORT = 47821
 
 
 def _run_server() -> uvicorn.Server:

@@ -15,6 +15,7 @@
         </div>
         <div class="login-card fade-in-up">
             <h1>ログイン</h1>
+            <p class="muted">Discordアカウントでログインします。事前に公開サーバーで利用申請・承認が必要です。</p>
 
             {% if error %}
             <div class="flash flash-error">{{ error }}</div>
@@ -24,13 +25,7 @@
                 <label for="server_url">公開サーバーURL</label>
                 <input type="text" id="server_url" name="server_url" required placeholder="https://your-public-server.example.com" value="{{ server_url or '' }}">
 
-                <label for="username">ユーザー名</label>
-                <input type="text" id="username" name="username" required value="{{ username or '' }}">
-
-                <label for="password">パスワード</label>
-                <input type="password" id="password" name="password" required>
-
-                <button type="submit" class="btn-block">ログイン</button>
+                <button type="submit" class="btn-block">Discordでログイン</button>
             </form>
         </div>
     </div>

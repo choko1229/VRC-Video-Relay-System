@@ -1,4 +1,5 @@
 import base64
+import json
 import logging
 from datetime import UTC, datetime
 
@@ -18,10 +19,6 @@ except ImportError:
         "pywin32(win32crypt)が利用できません。DPAPI暗号化の代わりにBase64エンコードのみで"
         "保存します(Windows以外での開発時のみを想定。本番Windows環境では発生しないはず)。"
     )
-
-
-class AuthError(Exception):
-    pass
 
 
 def _encrypt(raw: str) -> bytes:
@@ -66,16 +63,27 @@ def clear_token() -> None:
         session.commit()
 
 
-async def login(base_url: str, username: str, password: str) -> str:
-    async with httpx.AsyncClient(base_url=base_url, timeout=10.0) as client:
-        resp = await client.post("/api/auth/login", json={"username": username, "password": password})
-        if resp.status_code != 200:
-            detail = resp.json().get("detail", "ログインに失敗しました") if resp.content else "ログインに失敗しました"
-            raise AuthError(detail)
-        token = resp.json()["access_token"]
+def _decode_jwt_payload(token: str) -> dict:
+    """署名検証はしない、payloadを読み出すだけの軽量デコード。
+    このJWTはDiscord OAuthコールバックでサーバーからHTTPS経由で直接渡されたものであり、
+    ここではローカル表示用のusernameを取り出す目的のみに使う(認可判断には使わない)。"""
+    payload_b64 = token.split(".")[1]
+    padding = "=" * (-len(payload_b64) % 4)
+    decoded = base64.urlsafe_b64decode(payload_b64 + padding)
+    return json.loads(decoded)
+
+
+def save_token_from_jwt(token: str) -> str:
+    """Discord OAuthログイン完了後、ローカルコールバックで受け取ったJWTを保存する。"""
+    try:
+        payload = _decode_jwt_payload(token)
+        username = payload.get("username", "unknown")
+    except Exception:
+        logger.exception("受け取ったトークンの解析に失敗しました")
+        username = "unknown"
 
     save_token(username, token)
-    return token
+    return username
 
 
 async def get_my_status(base_url: str, token: str) -> dict:

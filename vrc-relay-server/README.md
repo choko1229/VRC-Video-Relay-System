@@ -20,6 +20,15 @@ uv run uvicorn app.main:app --reload
 サーバー側で行う)・管理者アカウント・MediaMTX API・公開URL等を入力する。保存時に実際に
 DBへ接続確認してから`.env`に書き込むため、接続情報の書式ミスはその場でエラー表示される。
 
+### Discord OAuth(一般ユーザーの申請・ログインに必須)
+
+一般ユーザーの利用申請とWindowsクライアントからのログインはDiscord OAuthが必須(パスワード
+認証は`/setup`で作る管理者アカウントのみのbreak-glass用)。事前に
+[Discord Developer Portal](https://discord.com/developers/applications)でアプリケーションを
+作成し、OAuth2設定のRedirectsに`<Web公開URL>/oauth/discord/callback`を登録した上で、
+Client ID・Client Secretを`/setup`画面に入力する(`/setup`画面にリダイレクトURLのプレビューが
+表示される)。承認通知DM用のBotトークンは同じアプリケーションのBotタブから取得できる(任意)。
+
 ## Docker Composeでの起動(本番相当)
 
 ```bash

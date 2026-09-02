@@ -15,13 +15,8 @@
             <div class="flash">承認待ちです。しばらくお待ちください。</div>
         {% elif result.status == "banned" %}
             <div class="flash flash-error">このアカウントは利用できません。</div>
-        {% elif result.status == "approved" and result.has_password %}
-            <div class="flash flash-success">承認済みです。Windowsアプリからログインしてください。</div>
         {% elif result.status == "approved" %}
-            <div class="flash flash-success">
-                承認済みです。パスワードが未設定のため、以下のリンクから設定してください。
-            </div>
-            <a class="btn" href="{{ result.setup_url }}">パスワードを設定する</a>
+            <div class="flash flash-success">承認済みです。Windowsアプリから「Discordでログイン」してください。</div>
         {% endif %}
     {% elif searched %}
         <hr style="border:none;border-top:1px solid var(--color-border);margin:20px 0">

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}ユーザー名の設定 - VRC配信中継システム{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>あと少しで申請完了です</h1>
+    <p class="muted">Discordアカウント「{{ discord_username }}」を確認しました。配信URLに使うユーザー名を決めてください。</p>
+
+    {% if error %}
+    <div class="flash flash-error">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="/oauth/discord/apply/confirm">
+        <input type="hidden" name="confirm_token" value="{{ confirm_token }}">
+        <label for="username">ユーザー名(半角英数字・アンダースコア・ハイフン)</label>
+        <input type="text" id="username" name="username" required pattern="[a-zA-Z0-9_\-]+" minlength="3" maxlength="64">
+        <button type="submit">この内容で申請する</button>
+    </form>
+</div>
+{% endblock %}

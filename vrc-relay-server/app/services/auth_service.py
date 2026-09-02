@@ -64,3 +64,19 @@ def verify_password_setup_token(token: str, settings: Settings) -> int:
     if payload.get("purpose") != TOKEN_PURPOSE_PASSWORD_SETUP:
         raise InvalidTokenError("token purpose mismatch")
     return int(payload["sub"])
+
+
+def create_short_lived_token(
+    purpose: str, data: dict[str, Any], settings: Settings, expire_minutes: int = 10
+) -> str:
+    """Discord OAuthのstateパラメータや、認証直後の一時的な受け渡しに使う汎用の短命トークン。"""
+    now = datetime.now(UTC)
+    payload = {**data, "purpose": purpose, "iat": now, "exp": now + timedelta(minutes=expire_minutes)}
+    return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+
+
+def verify_short_lived_token(token: str, purpose: str, settings: Settings) -> dict[str, Any]:
+    payload = decode_token(token, settings)
+    if payload.get("purpose") != purpose:
+        raise InvalidTokenError("token purpose mismatch")
+    return payload

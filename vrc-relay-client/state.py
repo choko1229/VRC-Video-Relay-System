@@ -11,6 +11,11 @@ network_monitor = NetworkMonitor()
 mediamtx_manager = MediaMTXManager()
 relay_client = RelayClient(network_monitor)
 
+# ローカルFastAPIは127.0.0.1限定でリッスンする(外部からのアクセス不可)。
+# Discord OAuthのredirect_uriリレー先(/oauth/callback)としても使う。
+LOCAL_HOST = "127.0.0.1"
+LOCAL_PORT = 47821
+
 CONFIG_KEY_PUBLIC_SERVER_URL = "public_server_url"
 CONFIG_KEY_PUSH_URL = "cached_push_url"
 CONFIG_KEY_PLAYBACK_URL = "cached_playback_url"

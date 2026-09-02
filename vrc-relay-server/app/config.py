@@ -29,13 +29,29 @@ class Settings(BaseSettings):
 
     discord_bot_token: str = ""
 
+    # 一般ユーザーのログイン・利用申請はDiscord OAuthを必須とする(パスワード認証は
+    # 初回セットアップで作成する管理者アカウントのみが例外的に使う)。
+    discord_oauth_client_id: str | None = None
+    discord_oauth_client_secret: str | None = None
+
     public_web_base_url: str | None = None
 
     cloudflare_tunnel_token: str = ""
 
     @property
     def is_configured(self) -> bool:
-        return bool(self.database_url and self.jwt_secret_key and self.admin_username and self.admin_password)
+        return bool(
+            self.database_url
+            and self.jwt_secret_key
+            and self.admin_username
+            and self.admin_password
+            and self.discord_oauth_client_id
+            and self.discord_oauth_client_secret
+        )
+
+    @property
+    def discord_oauth_redirect_uri(self) -> str:
+        return f"{self.public_web_base_url}/oauth/discord/callback"
 
     def playback_url(self, path_name: str) -> str:
         return f"rtsps://{self.public_rtsps_host}:{self.public_rtsps_port}/{path_name}"

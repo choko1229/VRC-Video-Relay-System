@@ -10,6 +10,8 @@ from state import (
     CONFIG_KEY_PLAYBACK_URL,
     CONFIG_KEY_PUBLIC_SERVER_URL,
     CONFIG_KEY_PUSH_URL,
+    LOCAL_HOST,
+    LOCAL_PORT,
     RELAY_SETTING_AUTO_RECONNECT,
     RELAY_SETTING_DEGRADE_THRESHOLD,
     RELAY_SETTING_DYNAMIC_BITRATE,
@@ -45,26 +47,34 @@ async def login_form(request: Request) -> HTMLResponse:
 
 
 @router.post("/login", response_class=HTMLResponse)
-async def login_submit(
-    request: Request,
-    server_url: str = Form(...),
-    username: str = Form(...),
-    password: str = Form(...),
-) -> HTMLResponse:
+async def login_submit(request: Request, server_url: str = Form(...)) -> HTMLResponse:
     server_url = server_url.rstrip("/")
-    try:
-        token = await auth_client.login(server_url, username, password)
-        set_config(CONFIG_KEY_PUBLIC_SERVER_URL, server_url)
-        status = await auth_client.get_my_status(server_url, token)
-        set_config(CONFIG_KEY_PUSH_URL, status["push_url"])
-        set_config(CONFIG_KEY_PLAYBACK_URL, status["playback_url"])
-    except Exception as exc:
-        logger.warning("ログインに失敗しました: %s", exc)
+    if not server_url:
         return templates.TemplateResponse(
-            request,
-            "login.html",
-            {"error": "ログインに失敗しました。ユーザー名・パスワード・サーバーURLを確認してください。", "server_url": server_url, "username": username},
+            request, "login.html", {"error": "公開サーバーURLを入力してください", "server_url": server_url}
         )
+
+    set_config(CONFIG_KEY_PUBLIC_SERVER_URL, server_url)
+    local_redirect = f"http://{LOCAL_HOST}:{LOCAL_PORT}/oauth/callback"
+    return RedirectResponse(
+        f"{server_url}/oauth/discord/login/start?redirect_uri={local_redirect}"
+    )
+
+
+@router.get("/oauth/callback", response_class=HTMLResponse)
+async def oauth_callback(request: Request, token: str) -> HTMLResponse:
+    """公開サーバーのDiscord OAuthコールバックが、ここへさらにリダイレクトしてくる
+    (redirect_uriを事前登録できないデスクトップアプリのための中継方式)。"""
+    username = auth_client.save_token_from_jwt(token)
+
+    server_url = get_config(CONFIG_KEY_PUBLIC_SERVER_URL)
+    if server_url:
+        try:
+            status = await auth_client.get_my_status(server_url, token)
+            set_config(CONFIG_KEY_PUSH_URL, status["push_url"])
+            set_config(CONFIG_KEY_PLAYBACK_URL, status["playback_url"])
+        except Exception:
+            logger.warning("最新の配信URL取得に失敗しました(ログイン自体は成功)")
 
     add_log("info", f"ログインしました: {username}")
     return RedirectResponse("/", status_code=303)
