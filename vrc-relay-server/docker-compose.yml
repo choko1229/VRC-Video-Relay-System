@@ -24,6 +24,12 @@ services:
     env_file: .env
     environment:
       APP_PORT: ${APP_PORT:-8000}
+    # 初期セットアップ画面(/setup)が.envにDB接続情報等を書き込むため、
+    # コンテナ再作成後も残るようホストの.envをそのままマウントする
+    # (事前に`cp .env.example .env`でファイルとして存在させておくこと。
+    #  存在しないとDockerがディレクトリとして作成してしまうため)
+    volumes:
+      - ./.env:/app/.env
     depends_on:
       mysql:
         condition: service_healthy

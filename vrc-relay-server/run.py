@@ -2,6 +2,9 @@
 
 `uv run uvicorn app.main:app`相当の処理(マイグレーション→cloudflared起動→uvicorn起動)を
 `python run.py`単体で行う。エッグの{{PY_FILE}}にこのファイルを指定して使う。
+
+DATABASE_URL未設定(初回起動、まだ/setupを完了していない)の場合はマイグレーションを
+スキップし、uvicornだけを起動する(アプリ側がセットアップ画面のみを提供する)。
 """
 
 import os
@@ -14,6 +17,15 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 os.chdir(BASE_DIR)
 sys.path.insert(0, str(BASE_DIR))
+
+# .envに書かれた値(セットアップ画面が書き込んだDATABASE_URL/CLOUDFLARE_TUNNEL_TOKEN等)を
+# 環境変数へ読み込む。既に環境変数側に値がある場合はそちらを優先する。
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(BASE_DIR / ".env", override=False)
+except ImportError:
+    pass
 
 
 def run_migrations() -> None:
@@ -41,8 +53,11 @@ def start_cloudflared() -> None:
 
 
 def main() -> None:
-    run_migrations()
-    start_cloudflared()
+    if os.environ.get("DATABASE_URL"):
+        run_migrations()
+        start_cloudflared()
+    else:
+        print("DATABASE_URL未設定のため、/setup 画面のみを起動します。", flush=True)
 
     import uvicorn
 

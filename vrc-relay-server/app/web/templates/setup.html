@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}初期セットアップ - VRC配信中継システム{% endblock %}
+{% block nav %}
+<div class="nav"><strong>VRC配信中継 - 初期セットアップ</strong></div>
+{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>初期セットアップ</h1>
+    <p class="muted">
+        初回起動時のみ表示される設定画面です。ここで入力した内容は<code>.env</code>に保存され、
+        次回以降はこの画面を経由せず通常起動します。
+    </p>
+
+    {% if error %}
+    <div class="flash flash-error">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="/setup">
+        <h3>DB接続</h3>
+        <label for="db_host">ホスト</label>
+        <input type="text" id="db_host" name="db_host" required value="{{ form.db_host or '' }}">
+
+        <label for="db_port">ポート</label>
+        <input type="text" id="db_port" name="db_port" required value="{{ form.db_port or '3306' }}">
+
+        <label for="db_username">ユーザー名</label>
+        <input type="text" id="db_username" name="db_username" required value="{{ form.db_username or '' }}">
+
+        <label for="db_password">パスワード</label>
+        <input type="text" id="db_password" name="db_password" required value="{{ form.db_password or '' }}">
+        <p class="muted" style="margin-top:-12px">記号を含むパスワードもそのまま入力してください(URLエンコードは不要、こちらで組み立てます)。</p>
+
+        <label for="db_database">データベース名</label>
+        <input type="text" id="db_database" name="db_database" required value="{{ form.db_database or '' }}">
+
+        <h3>管理者アカウント</h3>
+        <label for="admin_username">ユーザー名</label>
+        <input type="text" id="admin_username" name="admin_username" required value="{{ form.admin_username or '' }}">
+
+        <label for="admin_password">パスワード</label>
+        <input type="text" id="admin_password" name="admin_password" required minlength="8" value="{{ form.admin_password or '' }}">
+
+        <h3>MediaMTX HTTP API</h3>
+        <label for="mediamtx_host">ホスト</label>
+        <input type="text" id="mediamtx_host" name="mediamtx_host" required value="{{ form.mediamtx_host or '' }}">
+
+        <label for="mediamtx_port">ポート</label>
+        <input type="text" id="mediamtx_port" name="mediamtx_port" required value="{{ form.mediamtx_port or '9997' }}">
+
+        <h3>ストリーム公開先(RTMP/RTSPS)</h3>
+        <label for="rtmp_host">RTMPホスト(配信主中継からのpush受信)</label>
+        <input type="text" id="rtmp_host" name="rtmp_host" required value="{{ form.rtmp_host or '' }}">
+
+        <label for="rtmp_port">RTMPポート</label>
+        <input type="text" id="rtmp_port" name="rtmp_port" required value="{{ form.rtmp_port or '1935' }}">
+
+        <label for="rtsps_host">RTSPSホスト(VRChat再生用)</label>
+        <input type="text" id="rtsps_host" name="rtsps_host" required value="{{ form.rtsps_host or '' }}">
+
+        <label for="rtsps_port">RTSPSポート</label>
+        <input type="text" id="rtsps_port" name="rtsps_port" required value="{{ form.rtsps_port or '8322' }}">
+
+        <h3>Web管理パネル公開URL</h3>
+        <label for="public_web_base_url">URL(パスワード設定リンクの組み立てに使用)</label>
+        <input type="text" id="public_web_base_url" name="public_web_base_url" required placeholder="https://vrc-lr.example.net" value="{{ form.public_web_base_url or '' }}">
+
+        <h3>任意設定</h3>
+        <label for="discord_bot_token">Discord Botトークン(承認通知DM用、未使用ならログに出力するだけになります)</label>
+        <input type="text" id="discord_bot_token" name="discord_bot_token" value="{{ form.discord_bot_token or '' }}">
+
+        <label for="cloudflare_tunnel_token">Cloudflare Tunnelトークン(Web管理パネルの公開用)</label>
+        <input type="text" id="cloudflare_tunnel_token" name="cloudflare_tunnel_token" value="{{ form.cloudflare_tunnel_token or '' }}">
+        <p class="muted" style="margin-top:-12px">Cloudflare Tunnelの反映にはプロセスの再起動が必要です(他の設定は保存後すぐ有効になります)。</p>
+
+        <button type="submit">DB接続を確認して保存</button>
+    </form>
+</div>
+{% endblock %}
