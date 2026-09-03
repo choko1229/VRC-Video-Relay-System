@@ -5,13 +5,13 @@ from urllib.parse import urlparse
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings, get_settings
 from app.db.session import get_db
-from app.models.user import User, UserStatus
-from app.services import auth_service, discord_oauth_service
+from app.models.user import User, UserRole, UserStatus
+from app.services import auth_service, discord_oauth_service, stream_key_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/oauth/discord")
@@ -145,13 +145,34 @@ async def apply_confirm(
             status_code=409,
         )
 
+    # サーバー初回セットアップ後、最初にDiscordで申請したユーザーを
+    # 自動的に管理者として即承認する(以降の申請は通常どおり承認待ちになる)
+    discord_user_count = await db.execute(
+        select(func.count()).select_from(User).where(User.discord_id.is_not(None))
+    )
+    is_first_discord_user = discord_user_count.scalar_one() == 0
+
+    now = datetime.now(UTC)
     user = User(
         username=username,
         discord_id=payload["discord_id"],
-        status=UserStatus.pending,
-        applied_at=datetime.now(UTC),
+        applied_at=now,
     )
+    if is_first_discord_user:
+        user.role = UserRole.admin
+        user.status = UserStatus.approved
+        user.approved_at = now
+    else:
+        user.status = UserStatus.pending
+
     db.add(user)
+    if is_first_discord_user:
+        await db.flush()
+        await stream_key_service.create_for_user(db, user)
     await db.commit()
-    logger.info("Discord OAuth経由で新規申請を受け付けました: username=%s", username)
-    return templates.TemplateResponse(request, "applied.html", {})
+
+    if is_first_discord_user:
+        logger.info("Discord OAuth経由の初回申請につき管理者として即承認しました: username=%s", username)
+    else:
+        logger.info("Discord OAuth経由で新規申請を受け付けました: username=%s", username)
+    return templates.TemplateResponse(request, "applied.html", {"is_admin": is_first_discord_user})
