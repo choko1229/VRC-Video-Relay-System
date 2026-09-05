@@ -126,6 +126,9 @@ async def admin_settings_submit(
             "DATABASE_URL": database_url,
             "ADMIN_USERNAME": admin_username,
             "ADMIN_PASSWORD": admin_password,
+            # MediaMTXはappと同一コンテナ/プロセスグループで常に起動する運用のため固定値でよい
+            # (/setup移行前の古い値が.envに残っている場合の是正も兼ねる)
+            "MEDIAMTX_API_BASE_URL": "http://127.0.0.1:9997",
             "PUBLIC_RTMP_HOST": rtmp_host,
             "PUBLIC_RTMP_PORT": str(rtmp_port),
             "PUBLIC_RTSPS_HOST": rtsps_host,
