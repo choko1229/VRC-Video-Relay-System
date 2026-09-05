@@ -41,6 +41,19 @@ async def approve_user(
     return await admin_actions.approve_user(db, user, discord)
 
 
+@router.post("/users/{user_id}/promote", response_model=UserOut)
+async def promote_user(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+) -> UserOut:
+    """既存ユーザーを管理者に昇格させる(break-glassアカウントで実行する運用を想定)。"""
+    user = await _get_user_or_404(db, user_id)
+    if user.role == UserRole.admin:
+        raise HTTPException(status.HTTP_409_CONFLICT, "既に管理者です")
+
+    return await admin_actions.promote_to_admin(db, user)
+
+
 @router.post("/users/{user_id}/ban", response_model=UserOut)
 async def ban_user(
     user_id: int,

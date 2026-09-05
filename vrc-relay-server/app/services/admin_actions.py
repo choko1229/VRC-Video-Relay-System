@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.user import User, UserStatus
+from app.models.user import User, UserRole, UserStatus
 from app.services import stream_key_service
 from app.services.discord_service import DiscordNotifier
 from app.services.mediamtx_client import MediaMTXClient
@@ -26,6 +26,27 @@ async def approve_user(db: AsyncSession, user: User, discord: DiscordNotifier) -
     message = "ご利用申請が承認されました！Windowsアプリから「Discordでログイン」してください。"
     await discord.send_dm(user.discord_id, message)
 
+    return user
+
+
+async def promote_to_admin(db: AsyncSession, user: User) -> User:
+    """既存ユーザーを管理者に昇格させる(役割の手動割り当て用)。
+
+    管理者はstatus(承認待ち/BAN)にかかわらず無条件で利用できる設計だが、
+    昇格時点でまだ承認されていなければ合わせてapprovedにしておく(表示上の整合性のため)。
+    ストリームキーが未発行(承認待ちのまま昇格した場合)なら発行する。
+    """
+    user.role = UserRole.admin
+    if user.status != UserStatus.approved:
+        user.status = UserStatus.approved
+        user.approved_at = datetime.now(UTC)
+
+    existing_key = await stream_key_service.get_by_user_id(db, user.id)
+    if existing_key is None:
+        await stream_key_service.create_for_user(db, user)
+
+    await db.commit()
+    await db.refresh(user)
     return user
 
 
