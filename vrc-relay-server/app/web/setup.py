@@ -99,7 +99,7 @@ async def setup_submit(
 
     # 設定キャッシュとDBエンジンを作り直し、プロセス再起動なしで新しい接続情報を反映する
     get_settings.cache_clear()
-    db_session.reset()
+    await db_session.reset()
     settings = get_settings()
 
     try:

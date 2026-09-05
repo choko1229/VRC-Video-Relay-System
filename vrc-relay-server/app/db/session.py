@@ -22,10 +22,14 @@ def _ensure_initialized() -> async_sessionmaker[AsyncSession]:
     return _session_maker
 
 
-def reset() -> None:
-    """セットアップ画面がDB接続情報を書き換えた直後に呼び出し、次回アクセス時に
-    新しい接続情報でエンジンを再生成させる(プロセス再起動なしで反映するため)。"""
+async def reset() -> None:
+    """セットアップ画面/管理画面がDB接続情報を書き換えた直後に呼び出し、次回アクセス時に
+    新しい接続情報でエンジンを再生成させる(プロセス再起動なしで反映するため)。
+    古いエンジンのコネクションプールを明示的に破棄してから捨てる
+    (放置すると設定変更のたびに古い接続先へのコネクションがリークする)。"""
     global _engine, _session_maker
+    if _engine is not None:
+        await _engine.dispose()
     _engine = None
     _session_maker = None
 

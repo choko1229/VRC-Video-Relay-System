@@ -142,7 +142,7 @@ async def admin_settings_submit(
     )
 
     get_settings.cache_clear()
-    db_session.reset()
+    await db_session.reset()
     new_settings = get_settings()
 
     try:
@@ -167,6 +167,7 @@ async def admin_settings_submit(
                 new_db, old_admin_username, admin_username, admin_password
             )
         except admin_bootstrap.AdminUsernameTakenError as exc:
+            logger.warning("管理画面: 管理者ユーザー名の変更に失敗しました: %s", exc)
             return templates.TemplateResponse(
                 request,
                 "admin/settings.html",
