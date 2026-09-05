@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from core import auth_client
@@ -12,6 +12,7 @@ from state import (
     CONFIG_KEY_PUSH_URL,
     LOCAL_HOST,
     LOCAL_PORT,
+    PUBLIC_SERVER_URL,
     RELAY_SETTING_AUTO_RECONNECT,
     RELAY_SETTING_DEGRADE_THRESHOLD,
     RELAY_SETTING_DYNAMIC_BITRATE,
@@ -39,25 +40,15 @@ async def index(request: Request) -> HTMLResponse:
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_form(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse(
-        request,
-        "login.html",
-        {"server_url": get_config(CONFIG_KEY_PUBLIC_SERVER_URL, "")},
-    )
+    return templates.TemplateResponse(request, "login.html", {})
 
 
 @router.post("/login", response_class=HTMLResponse)
-async def login_submit(request: Request, server_url: str = Form(...)) -> HTMLResponse:
-    server_url = server_url.rstrip("/")
-    if not server_url:
-        return templates.TemplateResponse(
-            request, "login.html", {"error": "公開サーバーURLを入力してください", "server_url": server_url}
-        )
-
-    set_config(CONFIG_KEY_PUBLIC_SERVER_URL, server_url)
+async def login_submit(request: Request) -> HTMLResponse:
+    set_config(CONFIG_KEY_PUBLIC_SERVER_URL, PUBLIC_SERVER_URL)
     local_redirect = f"http://{LOCAL_HOST}:{LOCAL_PORT}/oauth/callback"
     return RedirectResponse(
-        f"{server_url}/oauth/discord/login/start?redirect_uri={local_redirect}"
+        f"{PUBLIC_SERVER_URL}/oauth/discord/login/start?redirect_uri={local_redirect}"
     )
 
 

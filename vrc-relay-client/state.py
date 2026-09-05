@@ -17,6 +17,8 @@ LOCAL_HOST = "127.0.0.1"
 LOCAL_PORT = 47821
 
 CONFIG_KEY_PUBLIC_SERVER_URL = "public_server_url"
+# 公開サーバーは固定運用のため、ログイン画面ではURL入力を求めずこの値を使う。
+PUBLIC_SERVER_URL = "https://vrc-lr.choko1229.net"
 CONFIG_KEY_PUSH_URL = "cached_push_url"
 CONFIG_KEY_PLAYBACK_URL = "cached_playback_url"
 CONFIG_KEY_THEME = "theme_preference"

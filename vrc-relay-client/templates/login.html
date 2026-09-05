@@ -22,9 +22,6 @@
             {% endif %}
 
             <form method="post" action="/login">
-                <label for="server_url">公開サーバーURL</label>
-                <input type="text" id="server_url" name="server_url" required placeholder="https://your-public-server.example.com" value="{{ server_url or '' }}">
-
                 <button type="submit" class="btn-block">Discordでログイン</button>
             </form>
         </div>
