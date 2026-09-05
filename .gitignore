@@ -185,6 +185,7 @@ cython_debug/
 *.db-journal
 vrc-relay-server/certs/
 vrc-relay-client/mediamtx/mediamtx.exe
+vrc-relay-client/ffmpeg/ffmpeg.exe
 poc/*.crt
 poc/*.key
 # ビルド設定として手を加えたものなので*.specの除外対象から明示的に復元する

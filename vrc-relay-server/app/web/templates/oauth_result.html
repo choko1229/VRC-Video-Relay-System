@@ -1,9 +1,16 @@
-{% extends "base.html" %}
-{% block title %}Discord認証 - VRChat Live Relay{% endblock %}
-{% block content %}
-<div class="card">
-    <h1>Discord認証</h1>
-    <p>{{ message }}</p>
-    <a class="btn" href="/apply">申請ページへ戻る</a>
-</div>
-{% endblock %}
+<!doctype html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Discord認証 - VRChat Live Relay</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container" style="max-width:360px;margin:72px auto 0;padding:0 20px;">
+        <h1>Discord認証</h1>
+        <p>{{ message }}</p>
+        <a class="btn" href="/apply" style="display:block;text-align:center;text-decoration:none;box-sizing:border-box;">申請ページへ戻る</a>
+    </div>
+</body>
+</html>
