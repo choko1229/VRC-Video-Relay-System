@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from fastapi import APIRouter, Form, Request
@@ -12,6 +13,25 @@ from app.services.discord_service import DiscordNotifier
 logger = logging.getLogger(__name__)
 router = APIRouter()
 templates = Jinja2Templates(directory="app/web/templates")
+
+
+def _run_migrations() -> None:
+    """DBにテーブルが無ければ作成する(alembic upgrade head相当)。
+
+    Pterodactylの汎用Pythonエッグ等、プロセス起動時点ではDATABASE_URL未設定で
+    マイグレーションがスキップされる構成だと、その後この/setup画面でDB接続情報を
+    書き込んでもテーブルが作られないまま(users テーブルが無い等)になってしまう。
+    ここで/setup完了時に必ずマイグレーションを実行することで、起動時にマイグレーションが
+    実行される構成(Docker Compose等)・されない構成のどちらでも動くようにする。
+    alembicのenv.pyはコマンド実行時にasyncio.run()を呼ぶため、既にイベントループが
+    動いているこの非同期リクエストハンドラの中では直接呼べない
+    (呼び出し側でasyncio.to_threadを使い、別スレッドで実行すること)。
+    """
+    from alembic import command
+    from alembic.config import Config
+
+    config = Config("alembic.ini")
+    command.upgrade(config, "head")
 
 
 @router.get("/setup", response_class=HTMLResponse)
@@ -103,6 +123,20 @@ async def setup_submit(
     get_settings.cache_clear()
     db_session.reset()
     settings = get_settings()
+
+    try:
+        await asyncio.to_thread(_run_migrations)
+    except Exception as exc:
+        logger.exception("セットアップ画面: マイグレーション実行に失敗しました")
+        return templates.TemplateResponse(
+            request,
+            "setup.html",
+            {
+                "form": form_values,
+                "error": f"データベースのテーブル作成(マイグレーション)に失敗しました。({exc})",
+            },
+            status_code=500,
+        )
 
     session_maker = db_session.get_session_maker()
     async with session_maker() as db:
