@@ -11,6 +11,7 @@ from app.db import session as db_session
 from app.logging_config import configure_logging
 from app.services import admin_bootstrap
 from app.services.discord_service import DiscordNotifier
+from app.web.admin_settings import router as admin_settings_router
 from app.web.oauth import router as oauth_router
 from app.web.routes import router as web_router
 from app.web.setup import router as setup_router
@@ -60,6 +61,7 @@ app.include_router(auth.router)
 app.include_router(me.router)
 app.include_router(admin.router)
 app.include_router(mediamtx_hook.router)
+app.include_router(admin_settings_router)
 app.include_router(web_router)
 
 app.mount("/static", StaticFiles(directory="app/web/static"), name="static")

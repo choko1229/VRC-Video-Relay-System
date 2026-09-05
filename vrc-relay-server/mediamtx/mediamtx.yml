@@ -7,9 +7,11 @@ logLevel: info
 # --- 外部HTTP認証 ---
 # authHTTPAddressを設定するだけでは有効にならず、authMethodをhttpに切り替える必要がある
 # (デフォルトはinternalで、authHTTPAddressの設定自体は無視される)
+# MediaMTXはappと同一コンテナ/プロセスグループで起動する運用のため127.0.0.1で到達できる。
+# ポート番号はAPP_PORTによって変わるため、ここには書かずMTX_AUTHHTTPADDRESS環境変数で
+# 上書きする(起動スクリプト側で `http://127.0.0.1:${APP_PORT}/internal/mediamtx/auth` を設定する)。
 authMethod: http
-# ポート番号はapp側の.envのAPP_PORT(デフォルト8000)と一致させること
-authHTTPAddress: http://app:8000/internal/mediamtx/auth
+authHTTPAddress: http://127.0.0.1:8000/internal/mediamtx/auth
 authHTTPExclude:
   # MVP方針: 視聴(read)側は認証なし。RTSPSのTLS暗号化とパス名の非公開性で担保する。
   # (仕様書8章の未決事項として、コミュニティ規模拡大時は要再検討)
@@ -28,8 +30,10 @@ rtspEncryption: optional
 rtspAddress: :8554
 rtspsAddress: :8322
 # TLS証明書はMediaMTX自身で保持する(RTSPSはHTTPではないためCloudflare Tunnel等を経由できず、直接ポート公開する)
-rtspServerCert: /certs/server.crt
-rtspServerKey: /certs/server.key
+# パスはこのmediamtx.ymlと同じディレクトリ(mediamtx/)からの相対パス。
+# server.crt/server.keyをこのディレクトリに配置すること。
+rtspServerCert: server.crt
+rtspServerKey: server.key
 
 # 未使用プロトコルは無効化(アドレスを空にするだけでは
 # 「有効なのにアドレス未設定」エラーになるため、対応する真偽値も明示的にnoにする)

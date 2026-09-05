@@ -1,27 +1,60 @@
 import asyncio
 import logging
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import generate_secret, get_settings
+from app.config import Settings, get_settings
 from app.db import session as db_session
+from app.db.session import get_db
 from app.services import admin_bootstrap, setup_service
 from app.services.discord_service import DiscordNotifier
+from app.web.routes import _get_admin, _require_admin_or_redirect
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 templates = Jinja2Templates(directory="app/web/templates")
 
 
-@router.get("/setup", response_class=HTMLResponse)
-async def setup_form(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse(request, "setup.html", {"form": {}})
+def _current_form_values(settings: Settings) -> dict:
+    db = setup_service.parse_database_url(settings.database_url) if settings.database_url else {}
+    return {
+        "db_host": db.get("host", ""),
+        "db_port": db.get("port", 3306),
+        "db_username": db.get("username", ""),
+        "db_password": db.get("password", ""),
+        "db_database": db.get("database", ""),
+        "admin_username": settings.admin_username or "",
+        "admin_password": settings.admin_password or "",
+        "rtmp_host": settings.public_rtmp_host or "",
+        "rtmp_port": settings.public_rtmp_port,
+        "rtsps_host": settings.public_rtsps_host or "",
+        "rtsps_port": settings.public_rtsps_port,
+        "public_web_base_url": settings.public_web_base_url or "",
+        "discord_oauth_client_id": settings.discord_oauth_client_id or "",
+        "discord_oauth_client_secret": settings.discord_oauth_client_secret or "",
+        "discord_bot_token": settings.discord_bot_token or "",
+        "cloudflare_tunnel_token": settings.cloudflare_tunnel_token or "",
+    }
 
 
-@router.post("/setup", response_class=HTMLResponse)
-async def setup_submit(
+@router.get("/admin/settings", response_class=HTMLResponse)
+async def admin_settings_form(
+    request: Request, db: AsyncSession = Depends(get_db), settings: Settings = Depends(get_settings)
+) -> HTMLResponse:
+    admin = await _get_admin(request, db, settings)
+    if (redirect := _require_admin_or_redirect(admin)) is not None:
+        return redirect
+
+    return templates.TemplateResponse(
+        request, "admin/settings.html", {"admin": admin, "form": _current_form_values(settings)}
+    )
+
+
+@router.post("/admin/settings", response_class=HTMLResponse)
+async def admin_settings_submit(
     request: Request,
     db_host: str = Form(...),
     db_port: int = Form(...),
@@ -39,7 +72,17 @@ async def setup_submit(
     discord_oauth_client_secret: str = Form(...),
     discord_bot_token: str = Form(""),
     cloudflare_tunnel_token: str = Form(""),
+    db: AsyncSession = Depends(get_db),
+    settings: Settings = Depends(get_settings),
 ) -> HTMLResponse:
+    admin = await _get_admin(request, db, settings)
+    if (redirect := _require_admin_or_redirect(admin)) is not None:
+        return redirect
+
+    # 更新前のbreak-glassユーザー名を控えておく(admin_usernameが変更された場合、
+    # 「新規作成」ではなく既存行の更新にするため)
+    old_admin_username = settings.admin_username
+
     form_values = {
         "db_host": db_host,
         "db_port": db_port,
@@ -66,11 +109,12 @@ async def setup_submit(
     try:
         await setup_service.test_database_connection(database_url)
     except setup_service.DatabaseConnectionError as exc:
-        logger.warning("セットアップ画面: DB接続確認に失敗しました: %s", exc)
+        logger.warning("管理画面: DB接続確認に失敗しました: %s", exc)
         return templates.TemplateResponse(
             request,
-            "setup.html",
+            "admin/settings.html",
             {
+                "admin": admin,
                 "form": form_values,
                 "error": f"データベースに接続できませんでした。ホスト・ポート・ユーザー名・パスワード・DB名を確認してください。({exc})",
             },
@@ -80,11 +124,8 @@ async def setup_submit(
     setup_service.write_env(
         {
             "DATABASE_URL": database_url,
-            "JWT_SECRET_KEY": generate_secret(),
             "ADMIN_USERNAME": admin_username,
             "ADMIN_PASSWORD": admin_password,
-            # MediaMTXはappと同一コンテナ/プロセスグループで常に起動する運用のため固定値でよい
-            "MEDIAMTX_API_BASE_URL": "http://127.0.0.1:9997",
             "PUBLIC_RTMP_HOST": rtmp_host,
             "PUBLIC_RTMP_PORT": str(rtmp_port),
             "PUBLIC_RTSPS_HOST": rtsps_host,
@@ -97,19 +138,19 @@ async def setup_submit(
         }
     )
 
-    # 設定キャッシュとDBエンジンを作り直し、プロセス再起動なしで新しい接続情報を反映する
     get_settings.cache_clear()
     db_session.reset()
-    settings = get_settings()
+    new_settings = get_settings()
 
     try:
         await asyncio.to_thread(setup_service.run_migrations)
     except Exception as exc:
-        logger.exception("セットアップ画面: マイグレーション実行に失敗しました")
+        logger.exception("管理画面: マイグレーション実行に失敗しました")
         return templates.TemplateResponse(
             request,
-            "setup.html",
+            "admin/settings.html",
             {
+                "admin": admin,
                 "form": form_values,
                 "error": f"データベースのテーブル作成(マイグレーション)に失敗しました。({exc})",
             },
@@ -117,8 +158,18 @@ async def setup_submit(
         )
 
     session_maker = db_session.get_session_maker()
-    async with session_maker() as db:
-        await admin_bootstrap.ensure_admin_user(db, settings)
+    async with session_maker() as new_db:
+        try:
+            await admin_bootstrap.update_admin_credentials(
+                new_db, old_admin_username, admin_username, admin_password
+            )
+        except admin_bootstrap.AdminUsernameTakenError as exc:
+            return templates.TemplateResponse(
+                request,
+                "admin/settings.html",
+                {"admin": admin, "form": form_values, "error": str(exc)},
+                status_code=409,
+            )
 
     if discord_bot_token:
         old_notifier: DiscordNotifier | None = getattr(request.app.state, "discord_notifier", None)
@@ -128,5 +179,9 @@ async def setup_submit(
         await new_notifier.start()
         request.app.state.discord_notifier = new_notifier
 
-    logger.info("初期セットアップが完了しました")
-    return RedirectResponse("/login", status_code=303)
+    logger.info("管理画面から接続設定を更新しました")
+    return templates.TemplateResponse(
+        request,
+        "admin/settings.html",
+        {"admin": admin, "form": _current_form_values(new_settings), "saved": True},
+    )

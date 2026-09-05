@@ -18,6 +18,8 @@ services:
   # Web管理パネル/APIはポート開放せず、同梱したcloudflaredでCloudflare Tunnel経由で公開する
   # (TLS終端・公開ホスト名の割り当てはCloudflare Zero Trustダッシュボード側で設定する。
   #  トンネルのpublic hostnameのServiceは http://app:${APP_PORT} を指すよう設定すること)
+  # MediaMTX(RTMP/RTSPS/HTTP API)も同一コンテナ内で同時起動する(docker-entrypoint.sh参照)。
+  # HTTP API(9997)はlocalhost経由でしか使わないため公開ポートは不要。
   app:
     build: .
     restart: unless-stopped
@@ -28,28 +30,20 @@ services:
     # コンテナ再作成後も残るようホストの.envをそのままマウントする
     # (事前に`cp .env.example .env`でファイルとして存在させておくこと。
     #  存在しないとDockerがディレクトリとして作成してしまうため)
+    # server.crt/server.keyはmediamtx.ymlと同じディレクトリに個別マウントする
+    # (ディレクトリごとマウントするとイメージに焼き込んだmediamtx.ymlが隠れてしまうため)
     volumes:
       - ./.env:/app/.env
+      - ./certs/server.crt:/app/mediamtx/server.crt:ro
+      - ./certs/server.key:/app/mediamtx/server.key:ro
     depends_on:
       mysql:
         condition: service_healthy
-    expose:
-      - "${APP_PORT:-8000}"
-
-  mediamtx:
-    image: bluenviron/mediamtx:latest
-    restart: unless-stopped
-    depends_on:
-      - app
-    volumes:
-      - ./mediamtx/mediamtx.yml:/mediamtx.yml:ro
-      - ./certs:/certs:ro
     ports:
       - "1935:1935"   # RTMP(配信主PC relay_clientからのpush)
       - "8322:8322"   # RTSPS(VRChat再生用)
     expose:
-      - "8554"  # RTSP(平文)。VRC側はRTSPSを使う想定なので外部公開しない
-      - "9997"  # HTTP API。管理パネル(app)からのみ利用するので外部公開しない
+      - "${APP_PORT:-8000}"
 
 volumes:
   mysql_data:

@@ -1,21 +1,18 @@
 {% extends "base.html" %}
-{% block title %}初期セットアップ - VRChat Live Relay{% endblock %}
-{% block nav %}
-<div class="nav"><strong>VRChat Live Relay - 初期セットアップ</strong></div>
-{% endblock %}
+{% block title %}接続設定 - 管理パネル{% endblock %}
 {% block content %}
-<div class="card">
-    <h1>初期セットアップ</h1>
-    <p class="muted">
-        初回起動時のみ表示される設定画面です。ここで入力した内容は<code>.env</code>に保存され、
-        次回以降はこの画面を経由せず通常起動します。
-    </p>
+<h1>接続設定</h1>
+<p class="muted">初回セットアップ(<code>/setup</code>)で入力した内容を後から変更できます。</p>
 
+<div class="card">
+    {% if saved %}
+    <div class="flash flash-success">保存しました。</div>
+    {% endif %}
     {% if error %}
     <div class="flash flash-error">{{ error }}</div>
     {% endif %}
 
-    <form method="post" action="/setup">
+    <form method="post" action="/admin/settings">
         <h3>DB接続</h3>
         <label for="db_host">ホスト</label>
         <input type="text" id="db_host" name="db_host" required value="{{ form.db_host or '' }}">
@@ -33,7 +30,7 @@
         <label for="db_database">データベース名</label>
         <input type="text" id="db_database" name="db_database" required value="{{ form.db_database or '' }}">
 
-        <h3>管理者アカウント</h3>
+        <h3>管理者アカウント(break-glass用、<code>/api/auth/login</code>専用)</h3>
         <label for="admin_username">ユーザー名</label>
         <input type="text" id="admin_username" name="admin_username" required value="{{ form.admin_username or '' }}">
 
@@ -58,10 +55,10 @@
         <input type="text" id="public_web_base_url" name="public_web_base_url" required placeholder="https://vrc-lr.example.net"
                value="{{ form.public_web_base_url or '' }}" oninput="updateRedirectUri()">
 
-        <h3>Discord OAuth(一般ユーザーの申請・ログインに必須)</h3>
+        <h3>Discord OAuth(一般ユーザー・管理者ともログインに必須)</h3>
         <p class="muted">
-            <a href="https://discord.com/developers/applications" target="_blank" rel="noopener">Discord Developer Portal</a>
-            でアプリケーションを作成し、OAuth2設定のRedirectsに次のURLを登録してください:<br>
+            変更する場合は<a href="https://discord.com/developers/applications" target="_blank" rel="noopener">Discord Developer Portal</a>
+            のOAuth2設定のRedirectsも次のURLに合わせて更新してください:<br>
             <code id="redirect-uri-preview">(上のWeb公開URLを入力すると表示されます)</code>
         </p>
         <label for="discord_oauth_client_id">Client ID</label>
@@ -78,7 +75,7 @@
         <input type="text" id="cloudflare_tunnel_token" name="cloudflare_tunnel_token" value="{{ form.cloudflare_tunnel_token or '' }}">
         <p class="muted" style="margin-top:-12px">Cloudflare Tunnelの反映にはプロセスの再起動が必要です(他の設定は保存後すぐ有効になります)。</p>
 
-        <button type="submit">DB接続を確認して保存</button>
+        <button type="submit">確認して保存</button>
     </form>
 </div>
 <script>

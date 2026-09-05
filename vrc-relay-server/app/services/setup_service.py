@@ -7,7 +7,7 @@ DB接続文字列を利用者に手入力させると書式ミス(jdbc:プレフ
 """
 
 from pathlib import Path
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, unquote_plus, urlparse
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -43,6 +43,39 @@ class DatabaseConnectionError(Exception):
 
 def build_database_url(host: str, port: int, username: str, password: str, database: str) -> str:
     return f"mysql+aiomysql://{quote_plus(username)}:{quote_plus(password)}@{host}:{port}/{quote_plus(database)}"
+
+
+def parse_database_url(database_url: str) -> dict[str, str | int]:
+    """build_database_urlの逆変換。管理画面で現在のDB接続情報をフォーム初期値として
+    表示するために使う(接続文字列をそのまま見せるとjdbc:混入等の書式ミスの元になるため)。"""
+    parsed = urlparse(database_url)
+    return {
+        "host": parsed.hostname or "",
+        "port": parsed.port or 3306,
+        "username": unquote_plus(parsed.username or ""),
+        "password": unquote_plus(parsed.password or ""),
+        "database": unquote_plus(parsed.path.lstrip("/")),
+    }
+
+
+def run_migrations() -> None:
+    """DBにテーブルが無ければ作成する(alembic upgrade head相当)。
+
+    Pterodactylの汎用Pythonエッグ等、プロセス起動時点ではDATABASE_URL未設定で
+    マイグレーションがスキップされる構成だと、その後/setupや管理画面の接続設定変更で
+    DB接続情報を書き込んでもテーブルが作られないまま(users テーブルが無い等)になってしまう。
+    ここで設定完了時に必ずマイグレーションを実行することで、起動時にマイグレーションが
+    実行される構成(Docker Compose等)・されない構成のどちらでも、また接続先を後から
+    別のDBに変更した場合でも動くようにする。
+    alembicのenv.pyはコマンド実行時にasyncio.run()を呼ぶため、既にイベントループが
+    動いている非同期リクエストハンドラの中では直接呼べない
+    (呼び出し側でasyncio.to_threadを使い、別スレッドで実行すること)。
+    """
+    from alembic import command
+    from alembic.config import Config
+
+    config = Config("alembic.ini")
+    command.upgrade(config, "head")
 
 
 async def test_database_connection(database_url: str) -> None:

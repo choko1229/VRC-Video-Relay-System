@@ -43,6 +43,9 @@ Client ID・Client Secretを`/setup`画面に入力する(`/setup`画面にリ�
 
 ## Docker Composeでの起動(本番相当)
 
+MediaMTX(RTMP/RTSPS)はappコンテナと同一コンテナ内で同時起動する(`docker-entrypoint.sh`参照)。
+別コンテナに分けるとHTTP API(認証Webhook・配信監視)の疎通設定を誤りやすいため統合している。
+
 ```bash
 cp .env.example .env
 # .envはAPP_PORTだけ確認すればよい(他は起動後に/setupで設定する)
@@ -76,16 +79,19 @@ Cloudflare管理下なら「DNSのみ」でプロキシしない設定)でサー
 ## Pterodactylでの運用
 
 「DBホスト機能」「既存のリバースプロキシ」のどちらも前提にしないため、エッグ構成は以下。
+MediaMTX(RTMP/RTSPS)はappと同一エッグ(同一コンテナ)内で同時起動するため、独立したエッグは不要。
 
 | エッグ | 用途 | ポート割り当て |
 |---|---|---|
-| app | FastAPI(+ cloudflaredを同梱起動) | `APP_PORT`(割り当てに合わせて`.env`で変更) |
-| mediamtx | RTMP/RTSPS受信・配信 | 1935, 8322(9997は内部専用) |
+| app | FastAPI + MediaMTX + cloudflaredを同梱起動 | `APP_PORT`(デフォルト割り当て)、1935、8322の3つを割り当てる |
 | mysql | DB | 内部専用(外部公開不要) |
 
-cloudflaredはappコンテナのエントリポイント(`docker-entrypoint.sh`)から同時起動する
-(`CLOUDFLARE_TUNNEL_TOKEN`が未設定なら起動をスキップするだけなので、別エッグ・別ホストで
-公開する場合もこのイメージをそのまま使い回せる)。
+appエッグには、Pterodactylパネルの「ネットワーク」からデフォルト割り当てに加えて
+1935・8322の2つを追加割り当てすること(MediaMTXがこの2ポートで直接LISTENする)。
+
+cloudflaredとMediaMTXはappコンテナのエントリポイント(`docker-entrypoint.sh`または`run.py`)
+から同時起動する(`CLOUDFLARE_TUNNEL_TOKEN`が未設定ならcloudflaredの起動をスキップするだけ
+なので、別エッグ・別ホストで公開する場合もこのイメージをそのまま使い回せる)。
 
 DB接続情報を含め、`APP_PORT`以外は`/setup`画面から設定する(エッグの環境変数として
 直接渡す必要はない)。ただしモノレポ全体をクローンするエッグでは、書き込み先の
@@ -98,12 +104,21 @@ DB接続情報を含め、`APP_PORT`以外は`/setup`画面から設定する(�
 `pip install`してから`python {{PY_FILE}}`するタイプ)で動かすこともできる。この場合:
 
 - `{{REQUIREMENTS_FILE}}` → `requirements.txt`(`uv export --format requirements-txt --no-dev --no-hashes -o requirements.txt`で生成済み。依存関係を変更したら再生成すること)
-- `{{PY_FILE}}` → `run.py`(マイグレーション実行→cloudflared起動→uvicorn起動を`uv`無しでも行えるようにしたスクリプト。`DATABASE_URL`未設定時はマイグレーションをスキップし、`/setup`のみを提供する)
+- `{{PY_FILE}}` → `run.py`(マイグレーション実行→MediaMTX起動→cloudflared起動→uvicorn起動を
+  `uv`無しでも行えるようにしたスクリプト。`DATABASE_URL`未設定時はマイグレーション・MediaMTX・
+  cloudflaredをスキップし、`/setup`のみを提供する)
 - ポートはPterodactylが渡す`SERVER_PORT`環境変数を`run.py`が自動で読む
 - モノレポ全体をクローンする場合、`{{PY_FILE}}`は`vrc-relay-server/run.py`、
   `{{REQUIREMENTS_FILE}}`は`vrc-relay-server/requirements.txt`を指定する
   (エッグ変数がサブディレクトリのパスを受け付けない場合は、リポジトリ直下の
   `run.py`/`requirements.txt`がそちらへ橋渡しするのでデフォルト値のままでよい)
+- カスタムDockerイメージと違い、MediaMTXバイナリを自動取得しないため事前に手動配置が必要:
+  [MediaMTXのリリースページ](https://github.com/bluenviron/mediamtx/releases)から
+  `mediamtx_v<version>_linux_amd64.tar.gz`(ARM系ノードなら`linux_arm64`)をダウンロードし、
+  展開して出てくる`mediamtx`実行ファイルを`vrc-relay-server/mediamtx/mediamtx`に配置する
+  (`chmod +x`が必要。見つからない場合は`run.py`がMediaMTXの起動をスキップし、ログに警告を
+  出すだけでアプリ自体は起動する)。RTSPS用の`server.crt`/`server.key`も同じ
+  `vrc-relay-server/mediamtx/`ディレクトリに配置する。
 
 ## マイグレーション
 
