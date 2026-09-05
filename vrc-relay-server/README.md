@@ -1,6 +1,6 @@
 # vrc-relay-server
 
-VRC配信中継システムの公開サーバー。FastAPI + MySQL + MediaMTX。
+VRChat Live Relayの公開サーバー。FastAPI + MySQL + MediaMTX。
 Web管理パネル/APIはポート開放せずCloudflare Tunnelで公開する構成。
 
 ## セットアップ

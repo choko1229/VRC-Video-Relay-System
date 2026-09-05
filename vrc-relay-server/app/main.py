@@ -43,7 +43,7 @@ async def lifespan(app: FastAPI):
     await notifier.stop()
 
 
-app = FastAPI(title="VRC配信中継システム 公開サーバー", lifespan=lifespan)
+app = FastAPI(title="VRChat Live Relay 公開サーバー", lifespan=lifespan)
 
 
 @app.middleware("http")

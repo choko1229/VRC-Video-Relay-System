@@ -13,7 +13,7 @@ from templating import templates
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="VRC配信中継システム Windowsクライアント")
+app = FastAPI(title="VRChat Live Relay Windowsクライアント")
 
 app.include_router(dashboard.router)
 app.include_router(settings.router)

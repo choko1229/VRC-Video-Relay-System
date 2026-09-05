@@ -35,7 +35,7 @@ def main() -> None:
     server = _run_server()
 
     window = webview.create_window(
-        "VRC配信中継クライアント",
+        "VRChat Live Relay",
         f"http://{LOCAL_HOST}:{LOCAL_PORT}/",
         width=480,
         height=780,

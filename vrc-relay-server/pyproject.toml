@@ -1,7 +1,7 @@
 [project]
 name = "vrc-relay-server"
 version = "0.1.0"
-description = "VRC配信中継システム 公開サーバー"
+description = "VRChat Live Relay 公開サーバー"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.115",

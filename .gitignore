@@ -180,7 +180,7 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
-# VRC配信中継システム: ローカルSQLite・証明書・MediaMTX/ffmpegバイナリ
+# VRChat Live Relay: ローカルSQLite・証明書・MediaMTX/ffmpegバイナリ
 *.db
 *.db-journal
 vrc-relay-server/certs/

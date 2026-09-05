@@ -1,6 +1,6 @@
 # vrc-relay-client
 
-VRC配信中継システムのWindowsクライアントアプリ。Python(FastAPI) + pywebview。
+VRChat Live RelayのWindowsクライアントアプリ。Python(FastAPI) + pywebview。
 
 ## セットアップ(開発)
 

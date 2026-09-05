@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}ログ - VRC配信中継クライアント{% endblock %}
+{% block title %}ログ - VRChat Live Relay{% endblock %}
 {% block content %}
 <div hx-get="/logs/data" hx-trigger="every 5s" hx-swap="innerHTML">
 {% include "_logs_table.html" %}
