@@ -186,6 +186,10 @@ cython_debug/
 vrc-relay-server/certs/
 vrc-relay-client/mediamtx/mediamtx.exe
 vrc-relay-client/ffmpeg/ffmpeg.exe
+vrc-relay-server/mediamtx/mediamtx
+vrc-relay-server/mediamtx/.version
+vrc-relay-server/mediamtx/server.crt
+vrc-relay-server/mediamtx/server.key
 poc/*.crt
 poc/*.key
 # ビルド設定として手を加えたものなので*.specの除外対象から明示的に復元する

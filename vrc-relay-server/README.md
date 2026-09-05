@@ -112,13 +112,12 @@ DB接続情報を含め、`APP_PORT`以外は`/setup`画面から設定する(�
   `{{REQUIREMENTS_FILE}}`は`vrc-relay-server/requirements.txt`を指定する
   (エッグ変数がサブディレクトリのパスを受け付けない場合は、リポジトリ直下の
   `run.py`/`requirements.txt`がそちらへ橋渡しするのでデフォルト値のままでよい)
-- カスタムDockerイメージと違い、MediaMTXバイナリを自動取得しないため事前に手動配置が必要:
-  [MediaMTXのリリースページ](https://github.com/bluenviron/mediamtx/releases)から
-  `mediamtx_v<version>_linux_amd64.tar.gz`(ARM系ノードなら`linux_arm64`)をダウンロードし、
-  展開して出てくる`mediamtx`実行ファイルを`vrc-relay-server/mediamtx/mediamtx`に配置する
-  (`chmod +x`が必要。見つからない場合は`run.py`がMediaMTXの起動をスキップし、ログに警告を
-  出すだけでアプリ自体は起動する)。RTSPS用の`server.crt`/`server.key`も同じ
-  `vrc-relay-server/mediamtx/`ディレクトリに配置する。
+- MediaMTXバイナリは`run.py`が起動のたびにGitHubの最新リリースを確認して自動取得・
+  自動更新する(`mediamtx/mediamtx`が無い、またはバージョンが古ければ取得し直し、
+  実行権限も自動で付与する)。手動配置は不要。GitHub APIに到達できない場合は、
+  既存のバイナリがあればそのまま使い、無ければMediaMTXの起動だけスキップして
+  ログに警告を出す(アプリ自体は起動する)。RTSPS用の`server.crt`/`server.key`は
+  `vrc-relay-server/mediamtx/`ディレクトリに配置すること(これは自動化されない)。
 
 ## マイグレーション
 
