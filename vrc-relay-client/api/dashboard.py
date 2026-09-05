@@ -47,15 +47,27 @@ async def login_form(request: Request) -> HTMLResponse:
 async def login_submit(request: Request) -> HTMLResponse:
     set_config(CONFIG_KEY_PUBLIC_SERVER_URL, PUBLIC_SERVER_URL)
     local_redirect = f"http://{LOCAL_HOST}:{LOCAL_PORT}/oauth/callback"
+    # デフォルトの307だとPOSTのまま公開サーバーへ飛んでしまい、GET専用の
+    # login/startが405 Method Not Allowedを返すため、303(GETに変わる)を使う。
     return RedirectResponse(
-        f"{PUBLIC_SERVER_URL}/oauth/discord/login/start?redirect_uri={local_redirect}"
+        f"{PUBLIC_SERVER_URL}/oauth/discord/login/start?redirect_uri={local_redirect}",
+        status_code=303,
     )
 
 
 @router.get("/oauth/callback", response_class=HTMLResponse)
-async def oauth_callback(request: Request, token: str) -> HTMLResponse:
+async def oauth_callback(request: Request, token: str | None = None) -> HTMLResponse:
     """公開サーバーのDiscord OAuthコールバックが、ここへさらにリダイレクトしてくる
     (redirect_uriを事前登録できないデスクトップアプリのための中継方式)。"""
+    if not token:
+        add_log("error", "Discordログインに失敗しました(トークンを受信できませんでした)")
+        return templates.TemplateResponse(
+            request,
+            "error.html",
+            {"message": "Discordログインに失敗しました。もう一度お試しください。"},
+            status_code=400,
+        )
+
     username = auth_client.save_token_from_jwt(token)
 
     server_url = get_config(CONFIG_KEY_PUBLIC_SERVER_URL)
