@@ -1,4 +1,7 @@
 <div class="card">
+    {% if mediamtx_error %}
+    <div class="flash flash-error">{{ mediamtx_error }}</div>
+    {% endif %}
     <table>
         <thead>
             <tr><th>ユーザー名</th><th>パス</th><th>状態</th><th>受信バイト数</th></tr>
@@ -15,7 +18,7 @@
                 <td>{{ s.bytes_received if s.bytes_received is not none else "-" }}</td>
             </tr>
         {% else %}
-            <tr><td colspan="4" class="muted">承認済みユーザーがいません。</td></tr>
+            <tr><td colspan="4" class="muted">{% if mediamtx_error %}MediaMTXの状態を取得できませんでした。{% else %}承認済みユーザーがいません。{% endif %}</td></tr>
         {% endfor %}
         </tbody>
     </table>

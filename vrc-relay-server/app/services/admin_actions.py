@@ -66,3 +66,29 @@ async def ban_user(db: AsyncSession, user: User, mediamtx: MediaMTXClient) -> Us
             logger.exception("BAN時の強制切断に失敗しました path=%s", key.path_name)
 
     return user
+
+
+async def rename_user(db: AsyncSession, user: User, new_username: str) -> User:
+    """ユーザー名を変更する。重複チェックは呼び出し側(API/Web両方の入口)で行う。"""
+    user.username = new_username
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+async def delete_user(db: AsyncSession, user: User, mediamtx: MediaMTXClient) -> None:
+    """ユーザーを完全に削除する(ストリームキーもDB上のON DELETE CASCADEで消える)。
+
+    配信中であれば強制切断してから削除する。
+    """
+    key = await stream_key_service.get_by_user_id(db, user.id)
+    path_name = key.path_name if key is not None else None
+
+    await db.delete(user)
+    await db.commit()
+
+    if path_name is not None:
+        try:
+            await mediamtx.kick_publisher_by_path(path_name)
+        except Exception:
+            logger.exception("削除時の強制切断に失敗しました path=%s", path_name)

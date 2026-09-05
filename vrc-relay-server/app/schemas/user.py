@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.models.user import UserRole, UserStatus
 
@@ -15,3 +15,7 @@ class UserOut(BaseModel):
     approved_at: datetime | None
 
     model_config = {"from_attributes": True}
+
+
+class RenameUserRequest(BaseModel):
+    username: str = Field(min_length=3, max_length=64, pattern=r"^[a-zA-Z0-9_\-]+$")

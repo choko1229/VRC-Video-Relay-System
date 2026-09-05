@@ -8,7 +8,7 @@ from app.api.deps import get_current_user, get_discord_notifier, get_mediamtx_cl
 from app.db.session import get_db
 from app.models.user import User, UserRole, UserStatus
 from app.schemas.stream import LiveStreamOut
-from app.schemas.user import UserOut
+from app.schemas.user import RenameUserRequest, UserOut
 from app.services import admin_actions, stream_key_service
 from app.services.discord_service import DiscordNotifier
 from app.services.mediamtx_client import MediaMTXClient
@@ -66,6 +66,37 @@ async def ban_user(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "自分自身をBANすることはできません")
 
     return await admin_actions.ban_user(db, user, mediamtx)
+
+
+@router.post("/users/{user_id}/rename", response_model=UserOut)
+async def rename_user(
+    user_id: int,
+    payload: RenameUserRequest,
+    db: AsyncSession = Depends(get_db),
+) -> UserOut:
+    user = await _get_user_or_404(db, user_id)
+
+    result = await db.execute(select(User).where(User.username == payload.username))
+    existing = result.scalar_one_or_none()
+    if existing is not None and existing.id != user.id:
+        raise HTTPException(status.HTTP_409_CONFLICT, "このユーザー名は既に使用されています")
+
+    return await admin_actions.rename_user(db, user, payload.username)
+
+
+@router.delete("/users/{user_id}")
+async def delete_user(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    mediamtx: MediaMTXClient = Depends(get_mediamtx_client),
+    current_admin: User = Depends(get_current_user),
+) -> dict[str, bool]:
+    user = await _get_user_or_404(db, user_id)
+    if user.id == current_admin.id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "自分自身を削除することはできません")
+
+    await admin_actions.delete_user(db, user, mediamtx)
+    return {"deleted": True}
 
 
 @router.get("/streams", response_model=list[LiveStreamOut])

@@ -1,4 +1,7 @@
 <div class="card" id="users-list">
+    {% if rename_error %}
+    <div class="flash flash-error">{{ rename_error }}</div>
+    {% endif %}
     <table>
         <thead>
             <tr><th>ユーザー名</th><th>role</th><th>状態</th><th>承認日時</th><th></th></tr>
@@ -15,9 +18,18 @@
                 </td>
                 <td>{{ u.approved_at.strftime("%Y-%m-%d %H:%M") if u.approved_at else "-" }}</td>
                 <td>
-                    {% if u.role.value != "admin" and u.status.value != "banned" %}
-                    <button class="btn-danger" hx-post="/admin/users/{{ u.id }}/ban" hx-target="#users-list" hx-swap="outerHTML" hx-confirm="{{ u.username }} をBANしますか?">BAN</button>
-                    {% endif %}
+                    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+                        {% if u.role.value != "admin" and u.status.value != "banned" %}
+                        <button class="btn-danger" hx-post="/admin/users/{{ u.id }}/ban" hx-target="#users-list" hx-swap="outerHTML" hx-confirm="{{ u.username }} をBANしますか?">BAN</button>
+                        {% endif %}
+                        {% if u.id != admin.id %}
+                        <button class="btn-danger" hx-post="/admin/users/{{ u.id }}/delete" hx-target="#users-list" hx-swap="outerHTML" hx-confirm="{{ u.username }} を削除しますか?(元に戻せません)">削除</button>
+                        {% endif %}
+                        <form hx-post="/admin/users/{{ u.id }}/rename" hx-target="#users-list" hx-swap="outerHTML" style="display:flex;gap:4px">
+                            <input type="text" name="new_username" placeholder="新しいユーザー名" pattern="[a-zA-Z0-9_\-]+" minlength="3" maxlength="64" required style="width:140px">
+                            <button class="btn" type="submit">変更</button>
+                        </form>
+                    </div>
                 </td>
             </tr>
         {% endfor %}

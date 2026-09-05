@@ -1,6 +1,7 @@
 import logging
 from datetime import UTC, datetime
 
+import httpx
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -50,16 +51,22 @@ def _require_admin_or_redirect(admin: User | None) -> RedirectResponse | None:
 
 
 @router.get("/apply", response_class=HTMLResponse)
-async def apply_form(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse(request, "apply.html", {})
+async def apply_form(
+    request: Request, db: AsyncSession = Depends(get_db), settings: Settings = Depends(get_settings)
+) -> HTMLResponse:
+    admin = await _get_admin(request, db, settings)
+    return templates.TemplateResponse(request, "apply.html", {"admin": admin})
 
 
 # --- 申請状況確認 ---
 
 
 @router.get("/status", response_class=HTMLResponse)
-async def status_form(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse(request, "status.html", {})
+async def status_form(
+    request: Request, db: AsyncSession = Depends(get_db), settings: Settings = Depends(get_settings)
+) -> HTMLResponse:
+    admin = await _get_admin(request, db, settings)
+    return templates.TemplateResponse(request, "status.html", {"admin": admin})
 
 
 @router.post("/status", response_class=HTMLResponse)
@@ -67,18 +74,25 @@ async def status_submit(
     request: Request,
     username: str = Form(...),
     db: AsyncSession = Depends(get_db),
+    settings: Settings = Depends(get_settings),
 ) -> HTMLResponse:
+    admin = await _get_admin(request, db, settings)
     result = await db.execute(select(User).where(User.username == username))
     user = result.scalar_one_or_none()
     if user is None:
         return templates.TemplateResponse(
-            request, "status.html", {"searched": True, "username": username}
+            request, "status.html", {"admin": admin, "searched": True, "username": username}
         )
 
     return templates.TemplateResponse(
         request,
         "status.html",
-        {"username": username, "result": {"status": user.status.value}, "searched": True},
+        {
+            "admin": admin,
+            "username": username,
+            "result": {"status": user.status.value},
+            "searched": True,
+        },
     )
 
 
@@ -86,8 +100,11 @@ async def status_submit(
 
 
 @router.get("/login", response_class=HTMLResponse)
-async def login_form(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse(request, "login.html", {})
+async def login_form(
+    request: Request, db: AsyncSession = Depends(get_db), settings: Settings = Depends(get_settings)
+) -> HTMLResponse:
+    admin = await _get_admin(request, db, settings)
+    return templates.TemplateResponse(request, "login.html", {"admin": admin})
 
 
 @router.get("/logout")
@@ -207,6 +224,58 @@ async def admin_ban(
     return templates.TemplateResponse(request, "admin/_users_list.html", {"admin": admin, "users": users})
 
 
+@router.post("/admin/users/{user_id}/rename", response_class=HTMLResponse)
+async def admin_rename(
+    request: Request,
+    user_id: int,
+    new_username: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> HTMLResponse:
+    admin = await _get_admin(request, db, settings)
+    if (redirect := _require_admin_or_redirect(admin)) is not None:
+        return redirect
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    error = None
+    if user is not None:
+        dup = await db.execute(select(User).where(User.username == new_username))
+        existing = dup.scalar_one_or_none()
+        if existing is not None and existing.id != user.id:
+            error = f"ユーザー名「{new_username}」は既に使用されています"
+        else:
+            await admin_actions.rename_user(db, user, new_username)
+
+    result = await db.execute(select(User).order_by(User.applied_at.desc()))
+    users = list(result.scalars())
+    return templates.TemplateResponse(
+        request, "admin/_users_list.html", {"admin": admin, "users": users, "rename_error": error}
+    )
+
+
+@router.post("/admin/users/{user_id}/delete", response_class=HTMLResponse)
+async def admin_delete(
+    request: Request,
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+    mediamtx: MediaMTXClient = Depends(get_mediamtx_client),
+) -> HTMLResponse:
+    admin = await _get_admin(request, db, settings)
+    if (redirect := _require_admin_or_redirect(admin)) is not None:
+        return redirect
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if user is not None and user.id != admin.id:
+        await admin_actions.delete_user(db, user, mediamtx)
+
+    result = await db.execute(select(User).order_by(User.applied_at.desc()))
+    users = list(result.scalars())
+    return templates.TemplateResponse(request, "admin/_users_list.html", {"admin": admin, "users": users})
+
+
 @router.get("/admin/streams", response_class=HTMLResponse)
 async def admin_streams(
     request: Request,
@@ -222,24 +291,32 @@ async def admin_streams(
         select(User).where(User.role == UserRole.user).where(User.status == UserStatus.approved)
     )
     users = list(result.scalars())
-    paths = {p["name"]: p for p in await mediamtx.list_paths()}
 
-    streams = []
-    for user in users:
-        key = await stream_key_service.get_by_user_id(db, user.id)
-        if key is None:
-            continue
-        path_info = paths.get(key.path_name)
-        streams.append(
-            {
-                "username": user.username,
-                "path_name": key.path_name,
-                "is_publishing": bool(path_info and path_info.get("ready")),
-                "bytes_received": path_info.get("bytesReceived") if path_info else None,
-            }
-        )
+    streams: list[dict] = []
+    mediamtx_error = None
+    try:
+        paths = {p["name"]: p for p in await mediamtx.list_paths()}
+    except httpx.HTTPError as exc:
+        logger.warning("MediaMTX APIへの接続に失敗しました: %s", exc)
+        paths = None
+        mediamtx_error = "MediaMTX APIに接続できません。設定(MediaMTX HTTP APIのホスト/ポート)を確認してください。"
+
+    if paths is not None:
+        for user in users:
+            key = await stream_key_service.get_by_user_id(db, user.id)
+            if key is None:
+                continue
+            path_info = paths.get(key.path_name)
+            streams.append(
+                {
+                    "username": user.username,
+                    "path_name": key.path_name,
+                    "is_publishing": bool(path_info and path_info.get("ready")),
+                    "bytes_received": path_info.get("bytesReceived") if path_info else None,
+                }
+            )
 
     template_name = "admin/_streams_table.html" if request.headers.get("hx-request") else "admin/streams.html"
     return templates.TemplateResponse(
-        request, template_name, {"admin": admin, "streams": streams}
+        request, template_name, {"admin": admin, "streams": streams, "mediamtx_error": mediamtx_error}
     )
