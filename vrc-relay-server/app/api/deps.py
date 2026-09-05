@@ -44,7 +44,8 @@ async def get_current_user(
     user = result.scalar_one_or_none()
     if user is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "ユーザーが見つかりません")
-    if user.status != UserStatus.approved:
+    # 管理者はstatus(pending/banned)にかかわらず無条件で利用できる
+    if user.role != UserRole.admin and user.status != UserStatus.approved:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "アカウントが有効ではありません")
 
     return user

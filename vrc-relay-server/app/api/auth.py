@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import Settings, get_settings
 from app.db.session import get_db
 from app.models.connection_log import ConnectionEventType, ConnectionLog
-from app.models.user import User, UserStatus
+from app.models.user import User, UserRole, UserStatus
 from app.schemas.auth import LoginRequest, LoginResponse
 from app.services import auth_service
 
@@ -35,10 +35,12 @@ async def login(
         await _log_auth_fail(db, user.id, "login failed: bad password")
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "ユーザー名またはパスワードが違います")
 
-    if user.status == UserStatus.banned:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "このアカウントはBANされています")
-    if user.status == UserStatus.pending:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "アカウントはまだ承認されていません")
+    # 管理者はstatus(pending/banned)にかかわらず無条件で利用できる
+    if user.role != UserRole.admin:
+        if user.status == UserStatus.banned:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "このアカウントはBANされています")
+        if user.status == UserStatus.pending:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "アカウントはまだ承認されていません")
 
     token = auth_service.create_access_token(user, settings)
     return LoginResponse(access_token=token)

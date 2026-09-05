@@ -49,6 +49,15 @@ async def login_start(
     return RedirectResponse(discord_oauth_service.build_authorize_url(state, settings))
 
 
+@router.get("/admin-login/start")
+async def admin_login_start(
+    request: Request, settings: Settings = Depends(get_settings)
+) -> RedirectResponse:
+    """Web管理パネル(/login)からのDiscordログイン開始。管理者アカウントのみ利用できる。"""
+    state = auth_service.create_short_lived_token(STATE_PURPOSE, {"flow": "admin_web"}, settings)
+    return RedirectResponse(discord_oauth_service.build_authorize_url(state, settings))
+
+
 @router.get("/callback", response_class=HTMLResponse)
 async def callback(
     request: Request,
@@ -94,7 +103,22 @@ async def callback(
             {"discord_username": discord_username, "confirm_token": confirm_token},
         )
 
-    # flow == "login"
+    if state_payload["flow"] == "admin_web":
+        if existing is None or existing.role != UserRole.admin:
+            return templates.TemplateResponse(
+                request,
+                "oauth_result.html",
+                {"message": "このDiscordアカウントは管理者として登録されていません。"},
+                status_code=403,
+            )
+        token = auth_service.create_access_token(existing, settings)
+        response = RedirectResponse("/admin/users/pending", status_code=303)
+        response.set_cookie(
+            auth_service.ADMIN_COOKIE, token, httponly=True, samesite="lax", max_age=60 * 60 * 24
+        )
+        return response
+
+    # flow == "login"(Windowsクライアントからのログイン)
     client_redirect = state_payload.get("client_redirect")
     if existing is None:
         return templates.TemplateResponse(
@@ -102,14 +126,16 @@ async def callback(
             "oauth_result.html",
             {"message": "このDiscordアカウントでの申請が見つかりません。先に利用申請を行ってください。"},
         )
-    if existing.status == UserStatus.pending:
-        return templates.TemplateResponse(
-            request, "oauth_result.html", {"message": "まだ管理者の承認待ちです。"}
-        )
-    if existing.status == UserStatus.banned:
-        return templates.TemplateResponse(
-            request, "oauth_result.html", {"message": "このアカウントは利用できません。"}
-        )
+    # 管理者はstatus(pending/banned)にかかわらず無条件で利用できる
+    if existing.role != UserRole.admin:
+        if existing.status == UserStatus.pending:
+            return templates.TemplateResponse(
+                request, "oauth_result.html", {"message": "まだ管理者の承認待ちです。"}
+            )
+        if existing.status == UserStatus.banned:
+            return templates.TemplateResponse(
+                request, "oauth_result.html", {"message": "このアカウントは利用できません。"}
+            )
 
     token = auth_service.create_access_token(existing, settings)
     if client_redirect:

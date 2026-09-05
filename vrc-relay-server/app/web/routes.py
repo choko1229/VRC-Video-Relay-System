@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 templates = Jinja2Templates(directory="app/web/templates")
 
-ADMIN_COOKIE = "admin_session"
+ADMIN_COOKIE = auth_service.ADMIN_COOKIE
 
 
 async def _get_admin(request: Request, db: AsyncSession, settings: Settings) -> User | None:
@@ -34,7 +34,8 @@ async def _get_admin(request: Request, db: AsyncSession, settings: Settings) -> 
         return None
     result = await db.execute(select(User).where(User.id == int(payload["sub"])))
     user = result.scalar_one_or_none()
-    if user is None or user.role != UserRole.admin or user.status != UserStatus.approved:
+    # 管理者はstatus(pending/banned)にかかわらず無条件で利用できる
+    if user is None or user.role != UserRole.admin:
         return None
     return user
 
@@ -81,39 +82,12 @@ async def status_submit(
     )
 
 
-# --- 管理者ログイン ---
+# --- 管理者ログイン(Discord OAuthのstart/callbackはapp/web/oauth.pyを参照) ---
 
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_form(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(request, "login.html", {})
-
-
-@router.post("/login", response_class=HTMLResponse)
-async def login_submit(
-    request: Request,
-    username: str = Form(...),
-    password: str = Form(...),
-    db: AsyncSession = Depends(get_db),
-    settings: Settings = Depends(get_settings),
-) -> HTMLResponse:
-    result = await db.execute(select(User).where(User.username == username))
-    user = result.scalar_one_or_none()
-
-    invalid = (
-        user is None
-        or user.password_hash is None
-        or not auth_service.verify_password(password, user.password_hash)
-    )
-    if invalid or user.role != UserRole.admin or user.status != UserStatus.approved:
-        return templates.TemplateResponse(
-            request, "login.html", {"error": "ユーザー名またはパスワードが違います", "username": username}
-        )
-
-    token = auth_service.create_access_token(user, settings)
-    response = RedirectResponse("/admin/users/pending", status_code=303)
-    response.set_cookie(ADMIN_COOKIE, token, httponly=True, samesite="lax", max_age=60 * 60 * 24)
-    return response
 
 
 @router.get("/logout")

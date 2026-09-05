@@ -20,14 +20,26 @@ uv run uvicorn app.main:app --reload
 サーバー側で行う)・管理者アカウント・MediaMTX API・公開URL等を入力する。保存時に実際に
 DBへ接続確認してから`.env`に書き込むため、接続情報の書式ミスはその場でエラー表示される。
 
-### Discord OAuth(一般ユーザーの申請・ログインに必須)
+### Discord OAuth(一般ユーザー・管理者ともログインに必須)
 
-一般ユーザーの利用申請とWindowsクライアントからのログインはDiscord OAuthが必須(パスワード
-認証は`/setup`で作る管理者アカウントのみのbreak-glass用)。事前に
+一般ユーザーの利用申請、Windowsクライアントからのログイン、管理パネル(`/login`)への
+ログインはすべてDiscord OAuthが必須。事前に
 [Discord Developer Portal](https://discord.com/developers/applications)でアプリケーションを
 作成し、OAuth2設定のRedirectsに`<Web公開URL>/oauth/discord/callback`を登録した上で、
 Client ID・Client Secretを`/setup`画面に入力する(`/setup`画面にリダイレクトURLのプレビューが
 表示される)。承認通知DM用のBotトークンは同じアプリケーションのBotタブから取得できる(任意)。
+
+`/setup`で作成する`ADMIN_USERNAME`/`ADMIN_PASSWORD`のアカウントはパスワード認証のまま
+残るが、これは`/api/auth/login`(JSON API)経由のbreak-glass専用で、Webの`/login`画面からは
+使えない(Discord連携がないため)。通常の管理者は、サーバーへ最初にDiscordで申請した
+アカウントが自動的に管理者へ昇格する仕組みを使う(下記「初回管理者」参照)。
+管理者ロールのユーザーはstatus(承認待ち/BAN)にかかわらず常にログイン・利用できる。
+
+#### 初回管理者
+
+サーバーで最初にDiscord OAuth経由の利用申請を行ったユーザーは、承認待ちを経ずに
+自動的に管理者(role=admin)として即承認される。運用開始後は真っ先に自分のDiscord
+アカウントで`/apply`から申請すること(先に他の誰かが申請すると、その人が管理者になる)。
 
 ## Docker Composeでの起動(本番相当)
 

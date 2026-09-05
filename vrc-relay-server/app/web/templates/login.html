@@ -8,12 +8,7 @@
     <div class="flash flash-error">{{ error }}</div>
     {% endif %}
 
-    <form method="post" action="/login">
-        <label for="username">ユーザー名</label>
-        <input type="text" id="username" name="username" required value="{{ username or '' }}">
-        <label for="password">パスワード</label>
-        <input type="password" id="password" name="password" required>
-        <button type="submit">ログイン</button>
-    </form>
+    <p class="muted">管理者として登録済みのDiscordアカウントでログインしてください。</p>
+    <a class="btn" href="/oauth/discord/admin-login/start">Discordでログイン</a>
 </div>
 {% endblock %}

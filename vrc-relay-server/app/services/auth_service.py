@@ -15,6 +15,10 @@ _pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 TOKEN_PURPOSE_ACCESS = "access"
 TOKEN_PURPOSE_PASSWORD_SETUP = "password_setup"
 
+# 管理パネル(Web UI)のセッションCookie名。web/routes.pyとweb/oauth.pyの双方で
+# 同じCookieを読み書きするため、循環importを避けてここに置く。
+ADMIN_COOKIE = "admin_session"
+
 
 class InvalidTokenError(Exception):
     pass
