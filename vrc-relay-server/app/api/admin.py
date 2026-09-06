@@ -104,9 +104,9 @@ async def list_streams(
     db: AsyncSession = Depends(get_db),
     mediamtx: MediaMTXClient = Depends(get_mediamtx_client),
 ) -> list[LiveStreamOut]:
-    result = await db.execute(
-        select(User).where(User.role == UserRole.user).where(User.status == UserStatus.approved)
-    )
+    # 管理者(role=admin)も自分の配信キーで配信できる(初回申請者の自動昇格・promote API等)ため、
+    # role=userに限定せず承認済み全員を対象にする。
+    result = await db.execute(select(User).where(User.status == UserStatus.approved))
     users = list(result.scalars())
 
     paths = {p["name"]: p for p in await mediamtx.list_paths()}

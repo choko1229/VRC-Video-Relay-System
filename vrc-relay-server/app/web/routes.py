@@ -287,9 +287,9 @@ async def admin_streams(
     if (redirect := _require_admin_or_redirect(admin)) is not None:
         return redirect
 
-    result = await db.execute(
-        select(User).where(User.role == UserRole.user).where(User.status == UserStatus.approved)
-    )
+    # 管理者(role=admin)も自分の配信キーで配信できる(初回申請者の自動昇格・promote API等)ため、
+    # role=userに限定せず承認済み全員を対象にする。
+    result = await db.execute(select(User).where(User.status == UserStatus.approved))
     users = list(result.scalars())
 
     streams: list[dict] = []
