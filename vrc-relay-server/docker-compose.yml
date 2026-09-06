@@ -26,6 +26,7 @@ services:
     env_file: .env
     environment:
       APP_PORT: ${APP_PORT:-8000}
+      PUBLIC_RTSP_PLAIN_PORT: ${PUBLIC_RTSP_PLAIN_PORT:-554}
     # 初期セットアップ画面(/setup)が.envにDB接続情報等を書き込むため、
     # コンテナ再作成後も残るようホストの.envをそのままマウントする
     # (事前に`cp .env.example .env`でファイルとして存在させておくこと。
@@ -42,6 +43,7 @@ services:
     ports:
       - "1935:1935"   # RTMP(配信主PC relay_clientからのpush)
       - "8322:8322"   # RTSPS(VRChat再生用)
+      - "${PUBLIC_RTSP_PLAIN_PORT:-554}:${PUBLIC_RTSP_PLAIN_PORT:-554}"   # RTSP平文(RTSPSが見られない場合のフォールバック)
     expose:
       - "${APP_PORT:-8000}"
 

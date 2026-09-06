@@ -67,7 +67,12 @@ Web管理パネル/APIとストリーム(RTMP/RTSPS)は別ドメインで公開�
 |---|---|---|---|
 | Web管理パネル・API・申請フォーム | Cloudflare Tunnel(ポート開放不要) | なし | `https://vrc-lr.choko1229.net` |
 | MediaMTX RTMP(配信主中継からのpush受信) | 直接ポート公開 | 1935 | `vrc-lr.chok.ooo:1935` |
-| MediaMTX RTSPS(VRChat再生用) | 直接ポート公開 | 8322 | `vrc-lr.chok.ooo:8322` |
+| MediaMTX RTSPS(VRChat再生用、暗号化) | 直接ポート公開 | 8322 | `vrc-lr.chok.ooo:8322` |
+| MediaMTX RTSP平文(RTSPSが見られない場合のフォールバック、非暗号) | 直接ポート公開 | 554(標準ポートなのでURLでポート省略可) | `rtspt://vrc-lr.chok.ooo/live_xxx` |
+
+RTSP平文フォールバックは通信内容が暗号化されないトレードオフがあるため、`/setup`・`/admin/settings`
+では既定のRTSPS URLを主として案内し、Windowsクライアントのダッシュボードでは「映らないときは?」の
+中にのみ表示する。ポートを`PUBLIC_RTSP_PLAIN_PORT`で554以外に変更した場合はURLにもポートが付く。
 
 Cloudflare Tunnelは[Zero Trustダッシュボード](https://one.dash.cloudflare.com/)でトンネルを作成し、
 発行されたトークンを`/setup`画面の「Cloudflare Tunnelトークン」に入力する(反映にはプロセスの
@@ -83,11 +88,14 @@ MediaMTX(RTMP/RTSPS)はappと同一エッグ(同一コンテナ)内で同時起�
 
 | エッグ | 用途 | ポート割り当て |
 |---|---|---|
-| app | FastAPI + MediaMTX + cloudflaredを同梱起動 | `APP_PORT`(デフォルト割り当て)、1935、8322の3つを割り当てる |
+| app | FastAPI + MediaMTX + cloudflaredを同梱起動 | `APP_PORT`(デフォルト割り当て)、1935、8322、554の4つを割り当てる |
 | mysql | DB | 内部専用(外部公開不要) |
 
 appエッグには、Pterodactylパネルの「ネットワーク」からデフォルト割り当てに加えて
-1935・8322の2つを追加割り当てすること(MediaMTXがこの2ポートで直接LISTENする)。
+1935(RTMP)・8322(RTSPS)・554(RTSP平文フォールバック)の3つを追加割り当てすること
+(MediaMTXがこれらのポートで直接LISTENする)。554が既に使われている等で割り当てられない
+場合は、`/setup`または`/admin/settings`の「RTSP平文ポート」を別の値に変更してよい
+(その場合、フォールバックURLにもポート番号が付くようになるだけで動作に支障はない)。
 
 cloudflaredとMediaMTXはappコンテナのエントリポイント(`docker-entrypoint.sh`または`run.py`)
 から同時起動する(`CLOUDFLARE_TUNNEL_TOKEN`が未設定ならcloudflaredの起動をスキップするだけ

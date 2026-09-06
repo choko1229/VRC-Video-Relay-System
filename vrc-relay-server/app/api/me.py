@@ -29,6 +29,7 @@ async def get_status(
     return MyStatusOut(
         path_name=key.path_name,
         playback_url=settings.playback_url(key.path_name),
+        playback_url_fallback=settings.playback_url_fallback(key.path_name),
         push_url=settings.push_url(key.path_name, key.stream_key),
         is_active=key.is_active,
         is_publishing=is_publishing,

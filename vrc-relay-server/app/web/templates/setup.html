@@ -53,6 +53,10 @@
         <label for="rtsps_port">RTSPSポート</label>
         <input type="text" id="rtsps_port" name="rtsps_port" required value="{{ form.rtsps_port or '8322' }}">
 
+        <label for="rtsp_plain_port">RTSP平文ポート(RTSPSが見られない場合の非暗号フォールバック用。標準ポート554ならプレイヤー側でポート省略可)</label>
+        <input type="text" id="rtsp_plain_port" name="rtsp_plain_port" required value="{{ form.rtsp_plain_port or '554' }}">
+        <p class="muted" style="margin-top:-12px">通信内容は暗号化されません。変更の反映にはプロセスの再起動が必要です。</p>
+
         <h3>Web管理パネル公開URL</h3>
         <label for="public_web_base_url">URL(申請・ログインのDiscord OAuthコールバック組み立てにも使用)</label>
         <input type="text" id="public_web_base_url" name="public_web_base_url" required placeholder="https://vrc-lr.example.net"

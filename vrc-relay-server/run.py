@@ -129,6 +129,10 @@ def start_mediamtx(app_port: int) -> None:
 
     env = os.environ.copy()
     env["MTX_AUTHHTTPADDRESS"] = f"http://127.0.0.1:{app_port}/internal/mediamtx/auth"
+    # 非暗号フォールバック(rtspAddress)のポートは環境ごとに変わりうるため、
+    # PUBLIC_RTSP_PLAIN_PORT(.env、デフォルト554)に合わせて上書きする。
+    plain_rtsp_port = os.environ.get("PUBLIC_RTSP_PLAIN_PORT") or "554"
+    env["MTX_RTSPADDRESS"] = f":{plain_rtsp_port}"
     subprocess.Popen([str(MEDIAMTX_BINARY), "mediamtx.yml"], cwd=str(MEDIAMTX_DIR), env=env)
 
 

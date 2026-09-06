@@ -47,6 +47,44 @@
 </div>
 
 <div class="card">
+    <div class="card-header">{{ icons.obs() }}<span>OBS設定</span></div>
+    {% if not obs_installed %}
+    <p class="muted">OBSが検出されませんでした。手動でOBSの配信設定を行ってください。</p>
+    {% else %}
+    <label for="obs_profile">開始時にツール用設定へ切り替えるプロファイル</label>
+    <select id="obs_profile" name="obs_profile"
+        hx-post="/dashboard/obs/profile" hx-target="#dashboard-root" hx-swap="innerHTML" hx-trigger="change">
+        {% for p in obs_profiles %}
+        <option value="{{ p }}" {{ "selected" if p == obs_selected_profile else "" }}>{{ p }}</option>
+        {% endfor %}
+    </select>
+    {% if obs_profile_info %}
+    <div class="stat-grid">
+        <div class="stat-tile">
+            <div class="value">{{ obs_profile_info.output_resolution }}</div>
+            <div class="label">出力解像度</div>
+        </div>
+        <div class="stat-tile">
+            <div class="value">{{ obs_profile_info.fps }}</div>
+            <div class="label">FPS</div>
+        </div>
+        <div class="stat-tile">
+            <div class="value value-sm">{{ obs_profile_info.encoder }}</div>
+            <div class="label">エンコーダー</div>
+        </div>
+        <div class="stat-tile">
+            <div class="value">{{ obs_profile_info.video_bitrate_kbps }} kbps</div>
+            <div class="label">映像ビットレート</div>
+        </div>
+    </div>
+    {% endif %}
+    {% if obs_tool_active %}
+    <div class="flash" style="margin-top:12px">ツール用設定を適用中です。中継停止時に元の設定へ自動で戻ります。</div>
+    {% endif %}
+    {% endif %}
+</div>
+
+<div class="card">
     <div class="card-header">{{ icons.link() }}<span>自分のVRC用配信URL</span></div>
     <div class="copy-row">
         <input type="text" id="playback-url" readonly value="{{ playback_url }}" placeholder="中継開始後にここへ表示されます">
@@ -55,6 +93,19 @@
     <button class="btn-secondary" style="margin-top:12px" hx-post="/dashboard/stream-key/rotate" hx-target="#dashboard-root" hx-swap="innerHTML" hx-confirm="ストリームキーを再発行しますか?中継中の場合は再起動が必要です。">
         {{ icons.rotatekey() }}<span>ストリームキーを再発行</span>
     </button>
+
+    {% if playback_url_fallback %}
+    <details style="margin-top:12px">
+        <summary class="muted" style="cursor:pointer">映らないときは?</summary>
+        <p class="muted" style="margin-top:8px">
+            上のURLで再生できない場合、代わりにこちらを試してください(通信内容が暗号化されない簡易版です)。
+        </p>
+        <div class="copy-row">
+            <input type="text" id="playback-url-fallback" readonly value="{{ playback_url_fallback }}">
+            <button class="btn-secondary" type="button" onclick="copyToClipboard('playback-url-fallback')">{{ icons.copy() }}<span>コピー</span></button>
+        </div>
+    </details>
+    {% endif %}
 </div>
 
 <div class="card">

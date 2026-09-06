@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     public_rtsps_port: int = 8322
     public_rtmp_host: str | None = None
     public_rtmp_port: int = 1935
+    # RTSPS(暗号化)が見られない環境向けの非暗号フォールバック。RTSPの標準ポート(554)を
+    # 使えばURLからポート番号を省略できる(トパーズチャット等と同じ方式)が、通信内容は
+    # 暗号化されない。ホストはRTSPSと同じ配信サーバーを使う想定なのでpublic_rtsps_hostを流用する。
+    public_rtsp_plain_port: int = 554
 
     discord_bot_token: str = ""
 
@@ -55,6 +59,13 @@ class Settings(BaseSettings):
 
     def playback_url(self, path_name: str) -> str:
         return f"rtsps://{self.public_rtsps_host}:{self.public_rtsps_port}/{path_name}"
+
+    def playback_url_fallback(self, path_name: str) -> str:
+        """RTSPSが再生できない環境向けの非暗号フォールバックURL。rtspt(RTSP over TCP)を
+        使うと、標準ポート(554)なら省略でき、そうでなければ明示する。"""
+        if self.public_rtsp_plain_port == 554:
+            return f"rtspt://{self.public_rtsps_host}/{path_name}"
+        return f"rtspt://{self.public_rtsps_host}:{self.public_rtsp_plain_port}/{path_name}"
 
     def push_url(self, path_name: str, stream_key: str) -> str:
         return f"rtmp://{self.public_rtmp_host}:{self.public_rtmp_port}/{path_name}?key={stream_key}"

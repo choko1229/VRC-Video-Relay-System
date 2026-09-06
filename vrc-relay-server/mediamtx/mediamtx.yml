@@ -13,7 +13,8 @@ logLevel: info
 authMethod: http
 authHTTPAddress: http://127.0.0.1:8000/internal/mediamtx/auth
 authHTTPExclude:
-  # MVP方針: 視聴(read)側は認証なし。RTSPSのTLS暗号化とパス名の非公開性で担保する。
+  # MVP方針: 視聴(read)側は認証なし。RTSPS利用時はTLS暗号化とパス名の非公開性で担保するが、
+  # 非暗号フォールバック(rtspAddress)利用時は通信内容の暗号化は無い(パス名の非公開性のみ)。
   # (仕様書8章の未決事項として、コミュニティ規模拡大時は要再検討)
   - action: read
     path:
@@ -25,9 +26,13 @@ rtmpAddress: :1935
 # --- RTSP/RTSPS(VRChat ProTV等からの再生用) ---
 # rtspsAddressを設定するだけではRTSPSリスナーは起動せず、rtspEncryptionを
 # strict/optionalにする必要がある(デフォルトはno=RTSPSリスナー無効)。
+# rtspAddress(平文)はRTSPS非対応環境向けの非暗号フォールバックとして公開する。
+# 標準ポート(554)にしておけばプレイヤー側でポート省略できる(トパーズチャット等と同じ方式)。
+# 実際のポートは環境ごとに変わりうるため、起動スクリプト側でMTX_RTSPADDRESS環境変数により
+# 上書きする(PUBLIC_RTSP_PLAIN_PORTに合わせる)。
 rtsp: yes
 rtspEncryption: optional
-rtspAddress: :8554
+rtspAddress: :554
 rtspsAddress: :8322
 # TLS証明書はMediaMTX自身で保持する(RTSPSはHTTPではないためCloudflare Tunnel等を経由できず、直接ポート公開する)
 # パスはこのmediamtx.ymlと同じディレクトリ(mediamtx/)からの相対パス。
