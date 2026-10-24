@@ -55,6 +55,7 @@ class MediaMTXManager:
             stderr=subprocess.STDOUT,
             text=True,
             bufsize=1,
+            creationflags=subprocess.CREATE_NO_WINDOW,
         )
         self._obs_connected = False
         self._publisher_conn_id = None

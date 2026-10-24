@@ -11,7 +11,8 @@ uv sync
 ### 事前準備
 
 - `mediamtx/`ディレクトリに`mediamtx.exe`([MediaMTX](https://github.com/bluenviron/mediamtx/releases)のWindowsビルド)を配置する
-- `ffmpeg`をインストールし、PATHが通っていること(`relay_client.py`が`ffmpeg`コマンドを直接呼び出す)
+- `ffmpeg/`ディレクトリに`ffmpeg.exe`([FFmpeg](https://www.gyan.dev/ffmpeg/builds/)のWindowsビルド)を配置する
+  (実行環境のPATHに依存させず、同梱バイナリのみを使う設計になっている。`relay_client.py`参照)
 
 ### 起動
 
@@ -19,9 +20,10 @@ uv sync
 uv run python main.py
 ```
 
-初回起動時はログイン画面が表示される。公開サーバーURLを入力し「Discordでログイン」を押すと、
-ブラウザ側でDiscord認証が行われアプリに戻ってくる(事前に公開サーバーのWeb申請フォームで
-Discordアカウントでの利用申請・管理者による承認が完了している必要がある)。
+初回起動時はログイン画面が表示される(公開サーバーは固定のため入力不要)。「Discordでログイン」を
+押すとOSの既定ブラウザでDiscord認証が開始され、完了するとアプリのウィンドウ側が自動的に
+ダッシュボードへ進む(事前に公開サーバーのWeb申請フォームでDiscordアカウントでの利用申請・
+管理者による承認が完了している必要がある)。
 
 ## 画面構成
 
@@ -44,5 +46,6 @@ uv run pyinstaller --noconfirm vrc-relay-client.spec
 
 `dist/vrc-relay-client/`に実行ファイル一式が生成される(`vrc-relay-client.exe`起動で
 ローカルFastAPI+pywebviewウィンドウが立ち上がることを確認済み)。配布前に
-`dist/vrc-relay-client/_internal/mediamtx/`へ`mediamtx.exe`を配置すること
+`dist/vrc-relay-client/_internal/mediamtx/`へ`mediamtx.exe`、
+`dist/vrc-relay-client/_internal/ffmpeg/`へ`ffmpeg.exe`を配置すること
 (ライセンスの都合上ビルド成果物には含めていない)。

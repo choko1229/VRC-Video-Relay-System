@@ -122,9 +122,9 @@ a {
 
 .nav {
     display: flex;
-    gap: 4px;
+    gap: 2px;
     align-items: center;
-    padding: 12px 20px;
+    padding: 10px 14px;
     border-bottom: 1px solid var(--color-border);
 }
 
@@ -133,28 +133,30 @@ a {
     align-items: center;
     gap: 8px;
     font-weight: 700;
-    margin-right: 20px;
+    font-size: 0.92rem;
+    white-space: nowrap;
     color: var(--color-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.brand .icon {
-    width: 22px;
-    height: 22px;
-    color: var(--color-accent-primary);
-    vertical-align: 0;
-}
-
+/* ウィンドウ幅が狭い(このアプリは480px前後の固定ウィンドウ)ため、
+   ナビはアイコンのみで表示しラベルはtitle属性のツールチップに任せる。 */
 .nav-link {
     display: flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
     text-decoration: none;
     color: var(--color-text-muted);
-    font-weight: 600;
-    font-size: 0.9rem;
-    padding: 7px 12px;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
     border-radius: var(--radius-sm);
     transition: background var(--transition-base), color var(--transition-base);
+}
+
+.nav-link span {
+    display: none;
 }
 
 .nav-link .icon {
@@ -237,7 +239,7 @@ label {
     font-weight: 500;
 }
 
-input[type="text"], input[type="password"], input[type="number"] {
+input[type="text"], input[type="password"], input[type="number"], select {
     width: 100%;
     padding: 10px 14px;
     border: 1px solid var(--color-border);
@@ -428,6 +430,11 @@ tr:last-child td { border-bottom: none; }
     font-size: 1.3rem;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
+    overflow-wrap: break-word;
+}
+
+.stat-tile .value.value-sm {
+    font-size: 0.95rem;
 }
 
 .stat-tile .label {

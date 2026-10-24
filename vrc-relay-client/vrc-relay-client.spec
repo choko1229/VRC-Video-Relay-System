@@ -5,7 +5,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('templates', 'templates'), ('static', 'static'), ('mediamtx', 'mediamtx')],
+    datas=[('templates', 'templates'), ('static', 'static'), ('mediamtx', 'mediamtx'), ('ffmpeg', 'ffmpeg')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

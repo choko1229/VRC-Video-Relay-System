@@ -5,8 +5,9 @@ import uvicorn
 import webview
 
 from app import app
+from core import notify
 from db.models import init_db, purge_old_logs
-from state import LOCAL_HOST, LOCAL_PORT, mediamtx_manager, relay_client
+from state import LOCAL_HOST, LOCAL_PORT, mediamtx_manager, obs_manager, relay_client
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,13 @@ def _shutdown(server: uvicorn.Server) -> None:
         relay_client.stop()
     if mediamtx_manager.is_running():
         mediamtx_manager.stop()
+    # 中継停止ボタンを経由せずウィンドウを閉じた場合に備え、ツール用に書き換えた
+    # OBS設定が残っていないかここでも確認して復元する(保険)。
+    if obs_manager.has_backup() and not obs_manager.stop_and_restore():
+        notify.show_toast(
+            "VRChat Live Relay",
+            "OBSの設定を元に戻せませんでした。OBSの配信設定を確認してください。",
+        )
     server.should_exit = True
 
 

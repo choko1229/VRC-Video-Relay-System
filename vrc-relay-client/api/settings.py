@@ -1,9 +1,8 @@
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, Response
 
-from db.models import get_config, get_relay_setting, set_config, set_relay_setting
+from db.models import get_relay_setting, set_config, set_relay_setting
 from state import (
-    CONFIG_KEY_PUBLIC_SERVER_URL,
     CONFIG_KEY_THEME,
     RELAY_SETTING_DEGRADE_THRESHOLD,
     RELAY_SETTING_RECOVER_THRESHOLD,
@@ -31,11 +30,9 @@ async def settings_form(request: Request) -> HTMLResponse:
 @router.post("/settings", response_class=HTMLResponse)
 async def settings_submit(
     request: Request,
-    server_url: str = Form(...),
     degrade_streak_threshold: int = Form(...),
     recover_streak_threshold: int = Form(...),
 ) -> HTMLResponse:
-    set_config(CONFIG_KEY_PUBLIC_SERVER_URL, server_url.rstrip("/"))
     set_relay_setting(RELAY_SETTING_DEGRADE_THRESHOLD, str(degrade_streak_threshold))
     set_relay_setting(RELAY_SETTING_RECOVER_THRESHOLD, str(recover_streak_threshold))
     relay_client.update_config(
@@ -50,7 +47,6 @@ async def settings_submit(
 
 def _settings_context() -> dict:
     return {
-        "server_url": get_config(CONFIG_KEY_PUBLIC_SERVER_URL, ""),
         "degrade_streak_threshold": int(get_relay_setting(RELAY_SETTING_DEGRADE_THRESHOLD, "5")),
         "recover_streak_threshold": int(get_relay_setting(RELAY_SETTING_RECOVER_THRESHOLD, "30")),
     }

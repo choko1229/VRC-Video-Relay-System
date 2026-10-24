@@ -4,12 +4,18 @@ import threading
 import time
 from dataclasses import dataclass, field
 from enum import Enum
+from pathlib import Path
 
 from core.mediamtx_manager import LOCAL_RTMP_URL
 from core.network_monitor import NetworkMonitor
 from db.models import add_log
 
 logger = logging.getLogger(__name__)
+
+# システムのPATHにあるffmpegに依存すると、未インストールやバージョン違いの環境で
+# 原因の分かりにくいクラッシュを起こすため、mediamtxと同様にバイナリを同梱する。
+FFMPEG_DIR = Path(__file__).resolve().parent.parent / "ffmpeg"
+FFMPEG_EXE = FFMPEG_DIR / "ffmpeg.exe"
 
 
 class RelayState(str, Enum):
@@ -170,8 +176,14 @@ class RelayClient:
 
     def _run_ffmpeg_once(self, profile: EncodeProfile) -> None:
         assert self._config is not None
+        if not FFMPEG_EXE.exists():
+            raise FileNotFoundError(
+                f"ffmpeg.exeが見つかりません: {FFMPEG_EXE}。"
+                "配布物に同梱するか、ffmpegディレクトリに配置してください。"
+            )
+
         cmd = [
-            "ffmpeg",
+            str(FFMPEG_EXE),
             "-loglevel", "warning",
             "-re",
             "-i", LOCAL_RTMP_URL,
@@ -187,13 +199,32 @@ class RelayClient:
         self._process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
             text=True,
             bufsize=1,
+            creationflags=subprocess.CREATE_NO_WINDOW,
         )
         self._set_info(state=RelayState.relaying)
         self._good_streak = 0
         self._bad_streak = 0
+
+        # stderrを捨てるとffmpegが実際に何のエラーで落ちたのか(接続拒否/入力なし/
+        # 出力先の問題等)が一切分からなくなるため、末尾数行を保持しておき
+        # 異常終了時のメッセージに含める。
+        stderr_tail: list[str] = []
+
+        def _pump_stderr(pipe) -> None:
+            for raw_line in pipe:
+                line = raw_line.strip()
+                if not line:
+                    continue
+                stderr_tail.append(line)
+                del stderr_tail[:-10]
+                logger.debug("[ffmpeg] %s", line)
+
+        assert self._process.stderr is not None
+        stderr_thread = threading.Thread(target=_pump_stderr, args=(self._process.stderr,), daemon=True)
+        stderr_thread.start()
 
         assert self._process.stdout is not None
         for line in self._process.stdout:
@@ -204,9 +235,11 @@ class RelayClient:
                 self._evaluate_bitrate_adjustment()
 
         returncode = self._process.wait()
+        stderr_thread.join(timeout=2)
         self._process = None
         if not self._stop_event.is_set() and returncode != 0:
-            raise RuntimeError(f"ffmpegが異常終了しました(code={returncode})")
+            detail = " / ".join(stderr_tail[-3:]) if stderr_tail else "詳細不明(stderr出力なし)"
+            raise RuntimeError(f"ffmpegが異常終了しました(code={returncode}): {detail}")
 
     def _evaluate_bitrate_adjustment(self) -> None:
         if self._config is None or not self._config.dynamic_bitrate_enabled:

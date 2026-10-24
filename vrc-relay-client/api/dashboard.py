@@ -1,5 +1,6 @@
 import logging
 import threading
+import time
 import webbrowser
 
 from fastapi import APIRouter, Form, Request
@@ -54,6 +55,14 @@ def _start_obs_then_relay(profile_name: str, relay_config: RelayConfig | None) -
         return
 
     if relay_config:
+        # OBS WebSocketのstart_stream()が「配信中」を返した直後でも、実際に
+        # mediamtxへRTMP接続が確立されるまでには数秒のラグがある。このタイミングで
+        # ffmpegが-iを開こうとすると入力ストリームが無く即座に異常終了するため、
+        # mediamtx側で実際の受信を検知するまで待ってから中継を開始する。
+        deadline = time.time() + 15.0
+        while time.time() < deadline and not mediamtx_manager.is_obs_connected():
+            time.sleep(0.5)
+
         relay_client.start(relay_config)
         add_log("info", "中継サーバーを起動しました")
 

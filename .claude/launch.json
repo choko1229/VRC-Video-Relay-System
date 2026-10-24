@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "vrc-relay-client",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "cd /d vrc-relay-client && .venv\\Scripts\\python.exe -m uvicorn app:app --host 127.0.0.1 --port 47821"
+      ],
+      "port": 47821
+    }
+  ]
+}
